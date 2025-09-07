@@ -854,7 +854,7 @@ const firebaseConfig = {<br>
             let debtData = null;
             let debtUpdated = false;
 
-            // Handle debt/credit logic with proper validation
+            // Handle debt/credit logic with automatic combination
             if (type === 'debt') {
                 // Current wallet borrows from target wallet
                 // Check if there's existing credit from target to current (they cancel out)
@@ -871,34 +871,63 @@ const firebaseConfig = {<br>
                         debts[existingCreditIndex].status = 'paid';
                         
                         if (remainingAmount > 0) {
-                            // Create new debt for remaining amount
-                            debtData = {
-                                id: Date.now() + 1,
-                                from: targetWallet,
-                                to: currentWallet,
-                                amount: remainingAmount,
-                                description: description,
-                                date: date,
-                                status: 'active',
-                                timestamp: new Date().toISOString()
-                            };
+                            // Check if there's already existing debt in same direction
+                            const existingDebtIndex = debts.findIndex(d => 
+                                d.from === targetWallet && 
+                                d.to === currentWallet && 
+                                d.status === 'active'
+                            );
+                            
+                            if (existingDebtIndex !== -1) {
+                                // Add to existing debt
+                                debts[existingDebtIndex].amount += remainingAmount;
+                                debts[existingDebtIndex].description += ` + ${description}`;
+                                debts[existingDebtIndex].lastModified = new Date().toISOString();
+                            } else {
+                                // Create new debt for remaining amount
+                                debtData = {
+                                    id: Date.now() + 1,
+                                    from: targetWallet,
+                                    to: currentWallet,
+                                    amount: remainingAmount,
+                                    description: description,
+                                    date: date,
+                                    status: 'active',
+                                    timestamp: new Date().toISOString()
+                                };
+                            }
                         }
                     } else {
                         debts[existingCreditIndex].amount -= amount;
                     }
                     debtUpdated = true;
                 } else {
-                    // No existing credit, create new debt
-                    debtData = {
-                        id: Date.now() + 1,
-                        from: targetWallet,
-                        to: currentWallet,
-                        amount: amount,
-                        description: description,
-                        date: date,
-                        status: 'active',
-                        timestamp: new Date().toISOString()
-                    };
+                    // Check if there's existing debt in same direction to combine
+                    const existingDebtIndex = debts.findIndex(d => 
+                        d.from === targetWallet && 
+                        d.to === currentWallet && 
+                        d.status === 'active'
+                    );
+                    
+                    if (existingDebtIndex !== -1) {
+                        // Add to existing debt
+                        debts[existingDebtIndex].amount += amount;
+                        debts[existingDebtIndex].description += ` + ${description}`;
+                        debts[existingDebtIndex].lastModified = new Date().toISOString();
+                        debtUpdated = true;
+                    } else {
+                        // Create new debt
+                        debtData = {
+                            id: Date.now() + 1,
+                            from: targetWallet,
+                            to: currentWallet,
+                            amount: amount,
+                            description: description,
+                            date: date,
+                            status: 'active',
+                            timestamp: new Date().toISOString()
+                        };
+                    }
                 }
                 
             } else if (type === 'credit') {
@@ -917,34 +946,63 @@ const firebaseConfig = {<br>
                         debts[existingDebtIndex].status = 'paid';
                         
                         if (remainingAmount > 0) {
-                            // Create new credit for remaining amount
-                            debtData = {
-                                id: Date.now() + 1,
-                                from: currentWallet,
-                                to: targetWallet,
-                                amount: remainingAmount,
-                                description: description,
-                                date: date,
-                                status: 'active',
-                                timestamp: new Date().toISOString()
-                            };
+                            // Check if there's already existing credit in same direction
+                            const existingCreditIndex = debts.findIndex(d => 
+                                d.from === currentWallet && 
+                                d.to === targetWallet && 
+                                d.status === 'active'
+                            );
+                            
+                            if (existingCreditIndex !== -1) {
+                                // Add to existing credit
+                                debts[existingCreditIndex].amount += remainingAmount;
+                                debts[existingCreditIndex].description += ` + ${description}`;
+                                debts[existingCreditIndex].lastModified = new Date().toISOString();
+                            } else {
+                                // Create new credit for remaining amount
+                                debtData = {
+                                    id: Date.now() + 1,
+                                    from: currentWallet,
+                                    to: targetWallet,
+                                    amount: remainingAmount,
+                                    description: description,
+                                    date: date,
+                                    status: 'active',
+                                    timestamp: new Date().toISOString()
+                                };
+                            }
                         }
                     } else {
                         debts[existingDebtIndex].amount -= amount;
                     }
                     debtUpdated = true;
                 } else {
-                    // No existing debt, create new credit
-                    debtData = {
-                        id: Date.now() + 1,
-                        from: currentWallet,
-                        to: targetWallet,
-                        amount: amount,
-                        description: description,
-                        date: date,
-                        status: 'active',
-                        timestamp: new Date().toISOString()
-                    };
+                    // Check if there's existing credit in same direction to combine
+                    const existingCreditIndex = debts.findIndex(d => 
+                        d.from === currentWallet && 
+                        d.to === targetWallet && 
+                        d.status === 'active'
+                    );
+                    
+                    if (existingCreditIndex !== -1) {
+                        // Add to existing credit
+                        debts[existingCreditIndex].amount += amount;
+                        debts[existingCreditIndex].description += ` + ${description}`;
+                        debts[existingCreditIndex].lastModified = new Date().toISOString();
+                        debtUpdated = true;
+                    } else {
+                        // Create new credit
+                        debtData = {
+                            id: Date.now() + 1,
+                            from: currentWallet,
+                            to: targetWallet,
+                            amount: amount,
+                            description: description,
+                            date: date,
+                            status: 'active',
+                            timestamp: new Date().toISOString()
+                        };
+                    }
                 }
                 
             } else if (type === 'debt-payment') {
@@ -1989,5 +2047,5 @@ const firebaseConfig = {<br>
             return names[category] || category;
         }
     </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'97b7d5f890da6045',t:'MTc1NzI2NTE5Ny4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'97b7dcb903226045',t:'MTc1NzI2NTQ3My4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
