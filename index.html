@@ -11,7 +11,7 @@
         import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, updateDoc, query, orderBy, getDocs } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
         
         // Firebase configuration - DEMO MODE (akan menggunakan local storage)
-        const firebaseConfig = {
+       const firebaseConfig = {
     apiKey: "AIzaSyASOFW-kGHoHemOJ80gax4CVKU03wDJyA8",
     authDomain: "flow-duid.firebaseapp.com",
     databaseURL: "https://flow-duid-default-rtdb.asia-southeast1.firebasedatabase.app",
@@ -1030,6 +1030,34 @@ const firebaseConfig = {<br>
                 }
                 debtUpdated = true;
                 
+                // Create automatic income transaction for the creditor (target wallet)
+                const creditorTransaction = {
+                    id: Date.now() + 2,
+                    wallet: targetWallet,
+                    type: 'income',
+                    amount: amount,
+                    category: 'lainnya-masuk',
+                    targetWallet: null,
+                    description: `Pembayaran hutang dari ${wallets[currentWallet].name}: ${description}`,
+                    date: date,
+                    timestamp: new Date().toISOString()
+                };
+                
+                // Add creditor transaction to local array
+                transactions.unshift(creditorTransaction);
+                
+                // Save creditor transaction to Firebase
+                if (isFirebaseReady && window.db) {
+                    try {
+                        await window.firestore.addDoc(
+                            window.firestore.collection(window.db, 'transactions'), 
+                            creditorTransaction
+                        );
+                    } catch (error) {
+                        console.log('Error saving creditor transaction:', error);
+                    }
+                }
+                
             } else if (type === 'credit-payment') {
                 // Current wallet receives payment from target wallet
                 const creditIndex = debts.findIndex(d => 
@@ -1054,6 +1082,34 @@ const firebaseConfig = {<br>
                     debts[creditIndex].amount -= amount;
                 }
                 debtUpdated = true;
+                
+                // Create automatic expense transaction for the debtor (target wallet)
+                const debtorTransaction = {
+                    id: Date.now() + 3,
+                    wallet: targetWallet,
+                    type: 'expense',
+                    amount: amount,
+                    category: 'lainnya-keluar',
+                    targetWallet: null,
+                    description: `Bayar hutang ke ${wallets[currentWallet].name}: ${description}`,
+                    date: date,
+                    timestamp: new Date().toISOString()
+                };
+                
+                // Add debtor transaction to local array
+                transactions.unshift(debtorTransaction);
+                
+                // Save debtor transaction to Firebase
+                if (isFirebaseReady && window.db) {
+                    try {
+                        await window.firestore.addDoc(
+                            window.firestore.collection(window.db, 'transactions'), 
+                            debtorTransaction
+                        );
+                    } catch (error) {
+                        console.log('Error saving debtor transaction:', error);
+                    }
+                }
             }
 
             // Add debt data to array if new debt/credit created
@@ -2083,5 +2139,5 @@ const firebaseConfig = {<br>
             return names[category] || category;
         }
     </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'97b7e30d84376045',t:'MTc1NzI2NTczMy4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'97b7ea9ff5806045',t:'MTc1NzI2NjA0My4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
