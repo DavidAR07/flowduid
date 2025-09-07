@@ -8,7 +8,7 @@
     <!-- Firebase SDK -->
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-        import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, updateDoc, query, orderBy } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+        import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, updateDoc, query, orderBy, getDocs } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
         
         // Firebase configuration - DEMO MODE (akan menggunakan local storage)
         const firebaseConfig = {
@@ -35,7 +35,7 @@
                 
                 // Make Firebase available globally
                 window.db = db;
-                window.firestore = { collection, addDoc, onSnapshot, deleteDoc, doc, updateDoc, query, orderBy };
+                window.firestore = { collection, addDoc, onSnapshot, deleteDoc, doc, updateDoc, query, orderBy, getDocs };
                 window.firebaseReady = true;
                 window.demoMode = false;
                 
@@ -1856,6 +1856,50 @@ const firebaseConfig = {<br>
 
         async function clearAllData() {
             if (confirm('Yakin ingin menghapus SEMUA data? Tindakan ini tidak dapat dibatalkan!')) {
+                showNotification('🔄 Menghapus semua data...', 'info');
+                
+                // Clear Firebase if connected
+                if (isFirebaseReady && window.db) {
+                    try {
+                        // Delete all transactions from Firebase
+                        const transactionsSnapshot = await window.firestore.getDocs(
+                            window.firestore.collection(window.db, 'transactions')
+                        );
+                        
+                        const transactionDeletePromises = [];
+                        transactionsSnapshot.forEach((doc) => {
+                            transactionDeletePromises.push(
+                                window.firestore.deleteDoc(
+                                    window.firestore.doc(window.db, 'transactions', doc.id)
+                                )
+                            );
+                        });
+                        
+                        // Delete all debts from Firebase
+                        const debtsSnapshot = await window.firestore.getDocs(
+                            window.firestore.collection(window.db, 'debts')
+                        );
+                        
+                        const debtDeletePromises = [];
+                        debtsSnapshot.forEach((doc) => {
+                            debtDeletePromises.push(
+                                window.firestore.deleteDoc(
+                                    window.firestore.doc(window.db, 'debts', doc.id)
+                                )
+                            );
+                        });
+                        
+                        // Wait for all deletions to complete
+                        await Promise.all([...transactionDeletePromises, ...debtDeletePromises]);
+                        
+                        showNotification('✅ Data berhasil dihapus dari cloud!', 'success');
+                        
+                    } catch (error) {
+                        console.log('Firebase clear error:', error);
+                        showNotification('⚠️ Error menghapus dari cloud, data lokal tetap dihapus', 'error');
+                    }
+                }
+                
                 // Clear local arrays
                 transactions = [];
                 debts = [];
@@ -1864,24 +1908,16 @@ const firebaseConfig = {<br>
                 localStorage.removeItem('transactions');
                 localStorage.removeItem('debts');
                 
-                // Clear Firebase if connected
-                if (isFirebaseReady && window.db) {
-                    try {
-                        // Note: In production, you'd want to batch delete or use cloud functions
-                        // For now, we'll just clear local data and let Firebase sync handle it
-                        showNotification('🔄 Menghapus data dari cloud...', 'info');
-                    } catch (error) {
-                        console.log('Firebase clear error:', error);
-                    }
-                }
-                
                 // Update UI
                 updateWalletBalances();
                 displayTransactions();
                 updateDebtSummary();
                 updateDailyChart();
                 updateCurrentMonthSummary();
-                showNotification('✅ Semua data berhasil dihapus!', 'success');
+                
+                if (!isFirebaseReady) {
+                    showNotification('✅ Semua data lokal berhasil dihapus!', 'success');
+                }
             }
         }
 
@@ -2047,5 +2083,5 @@ const firebaseConfig = {<br>
             return names[category] || category;
         }
     </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'97b7dcb903226045',t:'MTc1NzI2NTQ3My4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'97b7e30d84376045',t:'MTc1NzI2NTczMy4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
