@@ -10,7 +10,7 @@
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
         import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, updateDoc, query, orderBy } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
         
-        // Firebase configuration (demo config - replace with your own)
+        // Firebase configuration - GANTI DENGAN KONFIGURASI ANDA
         const firebaseConfig = {
     apiKey: "AIzaSyASOFW-kGHoHemOJ80gax4CVKU03wDJyA8",
     authDomain: "flow-duid.firebaseapp.com",
@@ -22,13 +22,21 @@
     measurementId: "G-LN1V1G5MLJ"
   };
 
-        // Initialize Firebase
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        
-        // Make Firebase available globally
-        window.db = db;
-        window.firestore = { collection, addDoc, onSnapshot, deleteDoc, doc, updateDoc, query, orderBy };
+        try {
+            // Initialize Firebase
+            const app = initializeApp(firebaseConfig);
+            const db = getFirestore(app);
+            
+            // Make Firebase available globally
+            window.db = db;
+            window.firestore = { collection, addDoc, onSnapshot, deleteDoc, doc, updateDoc, query, orderBy };
+            window.firebaseReady = true;
+            
+            console.log('✅ Firebase initialized successfully');
+        } catch (error) {
+            console.log('❌ Firebase initialization failed:', error);
+            window.firebaseReady = false;
+        }
     </script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
@@ -39,9 +47,15 @@
         @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
         .chart-bar { transition: all 0.3s ease; cursor: pointer; }
         .chart-bar:hover { opacity: 0.8; transform: scaleY(1.05); }
+        .firebase-status { position: fixed; top: 10px; right: 10px; z-index: 1000; }
     </style>
 </head>
 <body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
+    <!-- Firebase Status Indicator -->
+    <div id="firebaseStatus" class="firebase-status px-3 py-1 rounded-full text-xs font-medium">
+        🔄 Menghubungkan...
+    </div>
+
     <div class="container mx-auto px-4 py-6 max-w-7xl">
         <!-- Header -->
         <div class="text-center mb-6 slide-up">
@@ -165,6 +179,9 @@
                         <button onclick="exportData()" class="w-full bg-green-600 text-white py-2 px-3 rounded-lg hover:bg-green-700 transition-colors text-xs">
                             📊 Export Data
                         </button>
+                        <button onclick="syncNow()" class="w-full bg-blue-600 text-white py-2 px-3 rounded-lg hover:bg-blue-700 transition-colors text-xs">
+                            🔄 Sync Manual
+                        </button>
                         <button onclick="clearAllData()" class="w-full bg-red-600 text-white py-2 px-3 rounded-lg hover:bg-red-700 transition-colors text-xs">
                             🗑️ Hapus Semua Data
                         </button>
@@ -194,23 +211,23 @@
                     </div>
                 </div>
 
-                <!-- Monthly Chart Section -->
+                <!-- Daily Chart Section -->
                 <div class="bg-white rounded-xl shadow-lg p-6 fade-in">
                     <div class="flex justify-between items-center mb-4">
                         <h3 class="text-lg font-semibold text-gray-800 flex items-center">
-                            <span class="mr-2">📊</span> Grafik Bulanan
+                            <span class="mr-2">📊</span> Grafik Harian
                         </h3>
                         <div class="flex items-center space-x-3">
                             <!-- Month Navigation -->
                             <div class="flex items-center space-x-2 bg-gray-100 rounded-lg p-1">
-                                <button onclick="changeChartPeriod(-1)" class="px-2 py-1 text-sm bg-white rounded hover:bg-gray-50 transition-colors">
-                                    ← Sebelum
+                                <button onclick="changeChartMonth(-1)" class="px-3 py-2 text-sm bg-white rounded hover:bg-gray-50 transition-colors shadow-sm">
+                                    ← Bulan Lalu
                                 </button>
-                                <span id="chartPeriodDisplay" class="px-3 py-1 text-sm font-medium text-gray-700 min-w-[120px] text-center">
-                                    6 Bulan Terakhir
+                                <span id="chartMonthDisplay" class="px-4 py-2 text-sm font-medium text-gray-700 min-w-[140px] text-center bg-white rounded shadow-sm">
+                                    Loading...
                                 </span>
-                                <button onclick="changeChartPeriod(1)" class="px-2 py-1 text-sm bg-white rounded hover:bg-gray-50 transition-colors">
-                                    Sesudah →
+                                <button onclick="changeChartMonth(1)" class="px-3 py-2 text-sm bg-white rounded hover:bg-gray-50 transition-colors shadow-sm">
+                                    Bulan Depan →
                                 </button>
                             </div>
                             <select id="chartWalletFilter" class="px-3 py-2 border border-gray-300 rounded-lg text-sm">
@@ -225,15 +242,15 @@
                     <!-- Current Month Summary -->
                     <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
                         <div class="bg-blue-50 p-4 rounded-lg">
-                            <h4 class="text-sm font-semibold text-blue-800">Bulan Ini</h4>
+                            <h4 class="text-sm font-semibold text-blue-800">Bulan Dipilih</h4>
                             <p class="text-lg font-bold text-blue-600" id="currentMonthName">-</p>
                         </div>
                         <div class="bg-green-50 p-4 rounded-lg">
-                            <h4 class="text-sm font-semibold text-green-800">Pemasukan</h4>
+                            <h4 class="text-sm font-semibold text-green-800">Total Pemasukan</h4>
                             <p class="text-lg font-bold text-green-600" id="currentMonthIncome">Rp 0</p>
                         </div>
                         <div class="bg-red-50 p-4 rounded-lg">
-                            <h4 class="text-sm font-semibold text-red-800">Pengeluaran</h4>
+                            <h4 class="text-sm font-semibold text-red-800">Total Pengeluaran</h4>
                             <p class="text-lg font-bold text-red-600" id="currentMonthExpense">Rp 0</p>
                         </div>
                         <div class="bg-purple-50 p-4 rounded-lg">
@@ -243,18 +260,54 @@
                     </div>
 
                     <!-- Chart -->
-                    <div id="monthlyChart" class="h-64 flex items-end justify-between bg-gray-50 rounded-lg p-4 relative">
-                        <div class="absolute inset-0 flex items-center justify-center text-center text-gray-500">
-                            <div>
-                                <span class="text-4xl mb-2 block">📈</span>
-                                <p>Grafik akan muncul setelah ada data transaksi</p>
+                    <div class="bg-gray-50 rounded-lg p-4 mb-4">
+                        <!-- Chart Container with Scroll -->
+                        <div id="dailyChartContainer" class="relative">
+                            <div id="dailyChart" class="h-64 overflow-x-auto">
+                                <div class="flex items-end justify-start bg-gray-50 rounded-lg p-2 relative min-w-full">
+                                    <div class="absolute inset-0 flex items-center justify-center text-center text-gray-500">
+                                        <div>
+                                            <span class="text-4xl mb-2 block">📈</span>
+                                            <p>Grafik akan muncul setelah ada data transaksi</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Chart Controls -->
+                        <div class="flex justify-between items-center mt-4 pt-4 border-t border-gray-200">
+                            <div class="flex items-center space-x-4">
+                                <div class="flex items-center space-x-2 text-xs">
+                                    <div class="w-3 h-3 bg-green-500 rounded"></div>
+                                    <span>Pemasukan</span>
+                                </div>
+                                <div class="flex items-center space-x-2 text-xs">
+                                    <div class="w-3 h-3 bg-red-500 rounded"></div>
+                                    <span>Pengeluaran</span>
+                                </div>
+                                <div class="flex items-center space-x-2 text-xs">
+                                    <div class="w-3 h-3 bg-blue-500 rounded"></div>
+                                    <span>Saldo Harian</span>
+                                </div>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <button onclick="scrollChart('left')" class="px-2 py-1 bg-gray-200 hover:bg-gray-300 rounded text-xs">
+                                    ← Scroll
+                                </button>
+                                <button onclick="scrollChart('right')" class="px-2 py-1 bg-gray-200 hover:bg-gray-300 rounded text-xs">
+                                    Scroll →
+                                </button>
+                                <button onclick="scrollToToday()" class="px-2 py-1 bg-blue-500 hover:bg-blue-600 text-white rounded text-xs">
+                                    Hari Ini
+                                </button>
                             </div>
                         </div>
                     </div>
 
                     <!-- Top Categories -->
-                    <div class="mt-6">
-                        <h4 class="text-sm font-semibold text-gray-800 mb-3">🏆 Top 3 Kategori Pengeluaran Bulan Ini</h4>
+                    <div>
+                        <h4 class="text-sm font-semibold text-gray-800 mb-3">🏆 Top 3 Kategori Pengeluaran Bulan Dipilih</h4>
                         <div id="topCategories" class="space-y-2">
                             <p class="text-gray-500 text-sm">Belum ada data pengeluaran</p>
                         </div>
@@ -318,7 +371,9 @@
         let currentWallet = null;
         let editingId = null;
         let isFirebaseReady = false;
-        let chartPeriodOffset = 0; // 0 = current period, -1 = previous 6 months, etc.
+        let currentChartMonth = new Date(); // Current month being displayed in chart
+        let unsubscribeTransactions = null;
+        let unsubscribeDebts = null;
 
         // Wallet data
         const wallets = {
@@ -414,14 +469,108 @@
             updateWalletBalances();
             displayTransactions();
             updateTargetWalletOptions();
-            updateChart();
+            updateDailyChart();
             updateCurrentMonthSummary();
+        }
+
+        // Initialize Firebase real-time listeners
+        function initializeFirebase() {
+            // Wait for Firebase to be ready
+            const checkFirebase = () => {
+                if (window.firebaseReady && window.db) {
+                    setupFirebaseListeners();
+                } else if (window.firebaseReady === false) {
+                    // Firebase failed to initialize
+                    updateFirebaseStatus('offline');
+                    loadLocalData();
+                } else {
+                    // Still waiting
+                    setTimeout(checkFirebase, 100);
+                }
+            };
+            checkFirebase();
+        }
+
+        function setupFirebaseListeners() {
+            try {
+                updateFirebaseStatus('connecting');
+                
+                // Listen to transactions collection
+                const transactionsQuery = window.firestore.query(
+                    window.firestore.collection(window.db, 'transactions'),
+                    window.firestore.orderBy('timestamp', 'desc')
+                );
+                
+                unsubscribeTransactions = window.firestore.onSnapshot(transactionsQuery, (snapshot) => {
+                    transactions = [];
+                    snapshot.forEach((doc) => {
+                        transactions.push({ firebaseId: doc.id, ...doc.data() });
+                    });
+                    updateWalletBalances();
+                    displayTransactions();
+                    updateDailyChart();
+                    updateCurrentMonthSummary();
+                    isFirebaseReady = true;
+                    updateFirebaseStatus('online');
+                }, (error) => {
+                    console.log('Firebase transactions error:', error);
+                    updateFirebaseStatus('error');
+                    loadLocalData(); // Fallback to local storage
+                });
+
+                // Listen to debts collection
+                const debtsQuery = window.firestore.query(
+                    window.firestore.collection(window.db, 'debts'),
+                    window.firestore.orderBy('date', 'desc')
+                );
+                
+                unsubscribeDebts = window.firestore.onSnapshot(debtsQuery, (snapshot) => {
+                    debts = [];
+                    snapshot.forEach((doc) => {
+                        debts.push({ firebaseId: doc.id, ...doc.data() });
+                    });
+                    updateDebtSummary();
+                }, (error) => {
+                    console.log('Firebase debts error:', error);
+                    // Load local debts as fallback
+                    debts = JSON.parse(localStorage.getItem('debts')) || [];
+                    updateDebtSummary();
+                });
+
+            } catch (error) {
+                console.log('Firebase setup error:', error);
+                updateFirebaseStatus('error');
+                loadLocalData(); // Fallback to local storage
+            }
+        }
+
+        function updateFirebaseStatus(status) {
+            const statusElement = document.getElementById('firebaseStatus');
+            
+            switch (status) {
+                case 'connecting':
+                    statusElement.textContent = '🔄 Menghubungkan...';
+                    statusElement.className = 'firebase-status px-3 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800';
+                    break;
+                case 'online':
+                    statusElement.textContent = '✅ Tersinkron';
+                    statusElement.className = 'firebase-status px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800';
+                    break;
+                case 'offline':
+                    statusElement.textContent = '📱 Mode Offline';
+                    statusElement.className = 'firebase-status px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800';
+                    break;
+                case 'error':
+                    statusElement.textContent = '⚠️ Error Sync';
+                    statusElement.className = 'firebase-status px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800';
+                    break;
+            }
         }
 
         // Load data on page load
         document.addEventListener('DOMContentLoaded', function() {
             updateCategoryOptions();
-            loadLocalData();
+            initializeFirebase();
             // Default to David's wallet
             switchWallet('david');
         });
@@ -431,6 +580,9 @@
             debts = JSON.parse(localStorage.getItem('debts')) || [];
             updateWalletBalances();
             updateDebtSummary();
+            displayTransactions();
+            updateDailyChart();
+            updateCurrentMonthSummary();
         }
 
         function saveLocalData() {
@@ -438,8 +590,77 @@
             localStorage.setItem('debts', JSON.stringify(debts));
         }
 
+        // Save to Firebase
+        async function saveToFirebase(transaction, debtData = null) {
+            if (!isFirebaseReady || !window.db) {
+                saveLocalData();
+                return;
+            }
+
+            try {
+                // Save transaction to Firebase
+                const docRef = await window.firestore.addDoc(
+                    window.firestore.collection(window.db, 'transactions'), 
+                    transaction
+                );
+
+                // Save debt data if exists
+                if (debtData) {
+                    await window.firestore.addDoc(
+                        window.firestore.collection(window.db, 'debts'), 
+                        debtData
+                    );
+                }
+
+                // Also save to local storage as backup
+                saveLocalData();
+                
+                showNotification('✅ Data tersimpan dan tersinkron!', 'success');
+                
+            } catch (error) {
+                console.log('Firebase save error:', error);
+                // Fallback to local storage
+                saveLocalData();
+                showNotification('⚠️ Tersimpan lokal - akan sync otomatis', 'info');
+            }
+        }
+
+        // Delete from Firebase
+        async function deleteFromFirebase(firebaseId) {
+            if (!isFirebaseReady || !window.db || !firebaseId) return;
+
+            try {
+                await window.firestore.deleteDoc(
+                    window.firestore.doc(window.db, 'transactions', firebaseId)
+                );
+            } catch (error) {
+                console.log('Firebase delete error:', error);
+            }
+        }
+
+        // Manual sync function
+        async function syncNow() {
+            if (!window.db) {
+                showNotification('❌ Firebase tidak tersedia', 'error');
+                return;
+            }
+
+            showNotification('🔄 Memulai sinkronisasi...', 'info');
+            
+            try {
+                // Re-initialize Firebase listeners
+                if (unsubscribeTransactions) unsubscribeTransactions();
+                if (unsubscribeDebts) unsubscribeDebts();
+                
+                setupFirebaseListeners();
+                showNotification('✅ Sinkronisasi berhasil!', 'success');
+            } catch (error) {
+                showNotification('❌ Gagal sinkronisasi', 'error');
+            }
+        }
+
         // Form submission
-        document.getElementById('transactionForm').addEventListener('submit', function(e) {
+        document.getElementById('transactionForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
             if (!currentWallet) {
@@ -474,10 +695,12 @@
                 timestamp: new Date().toISOString()
             };
 
+            let debtData = null;
+
             // Handle debt/credit logic
             if (type === 'debt') {
                 // Create debt record
-                const debt = {
+                debtData = {
                     id: Date.now(),
                     from: targetWallet,
                     to: currentWallet,
@@ -486,10 +709,10 @@
                     date: date,
                     status: 'active'
                 };
-                debts.push(debt);
+                debts.push(debtData);
             } else if (type === 'credit') {
                 // Create credit record (reverse debt)
-                const debt = {
+                debtData = {
                     id: Date.now(),
                     from: currentWallet,
                     to: targetWallet,
@@ -498,7 +721,7 @@
                     date: date,
                     status: 'active'
                 };
-                debts.push(debt);
+                debts.push(debtData);
             } else if (type === 'debt-payment') {
                 // Find and reduce/remove debt
                 const debtIndex = debts.findIndex(d => 
@@ -529,8 +752,11 @@
                 }
             }
 
+            // Add to local array first for immediate UI update
             transactions.unshift(transaction);
-            saveLocalData();
+            
+            // Save to Firebase (will also save to local storage)
+            await saveToFirebase(transaction, debtData);
             
             // Reset form
             this.reset();
@@ -540,10 +766,8 @@
             updateWalletBalances();
             displayTransactions();
             updateDebtSummary();
-            updateChart();
+            updateDailyChart();
             updateCurrentMonthSummary();
-            
-            showNotification('Transaksi berhasil disimpan!', 'success');
         });
 
         function updateWalletBalances() {
@@ -605,15 +829,22 @@
             }
         }
 
-        function changeChartPeriod(direction) {
-            chartPeriodOffset += direction;
-            updateChart();
+        function changeChartMonth(direction) {
+            currentChartMonth.setMonth(currentChartMonth.getMonth() + direction);
+            updateDailyChart();
             updateCurrentMonthSummary();
         }
 
-        function updateChart() {
-            const chartElement = document.getElementById('monthlyChart');
+        function updateDailyChart() {
+            const chartElement = document.getElementById('dailyChart');
             const walletFilter = document.getElementById('chartWalletFilter').value;
+            
+            // Update month display
+            const monthDisplay = document.getElementById('chartMonthDisplay');
+            monthDisplay.textContent = currentChartMonth.toLocaleDateString('id-ID', { 
+                month: 'long', 
+                year: 'numeric' 
+            });
             
             // Filter transactions by wallet if needed
             let filteredTransactions = transactions;
@@ -621,121 +852,228 @@
                 filteredTransactions = transactions.filter(t => t.wallet === walletFilter);
             }
             
-            if (filteredTransactions.length === 0) {
+            // Get current month string (YYYY-MM)
+            const currentMonthStr = `${currentChartMonth.getFullYear()}-${String(currentChartMonth.getMonth() + 1).padStart(2, '0')}`;
+            
+            // Filter transactions for current month
+            const monthTransactions = filteredTransactions.filter(t => 
+                t.date.substring(0, 7) === currentMonthStr
+            );
+            
+            if (monthTransactions.length === 0) {
                 chartElement.innerHTML = `
-                    <div class="absolute inset-0 flex items-center justify-center text-center text-gray-500">
-                        <div>
-                            <span class="text-4xl mb-2 block">📈</span>
-                            <p>Grafik akan muncul setelah ada data transaksi</p>
+                    <div class="flex items-end justify-start bg-gray-50 rounded-lg p-2 relative min-w-full h-64">
+                        <div class="absolute inset-0 flex items-center justify-center text-center text-gray-500">
+                            <div>
+                                <span class="text-4xl mb-2 block">📈</span>
+                                <p>Tidak ada transaksi di bulan ini</p>
+                            </div>
                         </div>
                     </div>
                 `;
-                updateChartPeriodDisplay([]);
                 return;
             }
 
-            // Group transactions by month
-            const monthlyData = {};
-            filteredTransactions.forEach(t => {
-                const month = t.date.substring(0, 7); // YYYY-MM
-                if (!monthlyData[month]) {
-                    monthlyData[month] = { income: 0, expense: 0 };
-                }
-                if (t.type === 'income' || t.type === 'debt' || t.type === 'credit-payment') {
-                    monthlyData[month].income += t.amount;
-                } else if (t.type === 'expense' || t.type === 'credit' || t.type === 'debt-payment') {
-                    monthlyData[month].expense += t.amount;
+            // Get days in current month
+            const year = currentChartMonth.getFullYear();
+            const month = currentChartMonth.getMonth();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            
+            // Group transactions by day
+            const dailyData = {};
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dayStr = `${currentMonthStr}-${String(day).padStart(2, '0')}`;
+                dailyData[dayStr] = { income: 0, expense: 0, transactions: [] };
+            }
+            
+            monthTransactions.forEach(t => {
+                if (dailyData[t.date]) {
+                    dailyData[t.date].transactions.push(t);
+                    if (t.type === 'income' || t.type === 'debt' || t.type === 'credit-payment') {
+                        dailyData[t.date].income += t.amount;
+                    } else if (t.type === 'expense' || t.type === 'credit' || t.type === 'debt-payment') {
+                        dailyData[t.date].expense += t.amount;
+                    }
                 }
             });
 
-            // Get all available months and calculate the period to show
-            const allMonths = Object.keys(monthlyData).sort();
-            const totalMonths = allMonths.length;
+            // Calculate max amount for scaling
+            const maxAmount = Math.max(...Object.values(dailyData).map(d => Math.max(d.income, d.expense, Math.abs(d.income - d.expense))));
             
-            // Calculate start and end indices based on offset
-            const endIndex = totalMonths + (chartPeriodOffset * 6);
-            const startIndex = Math.max(0, endIndex - 6);
-            const months = allMonths.slice(startIndex, endIndex);
+            // Calculate running balance
+            let runningBalance = 0;
+            const today = new Date().toISOString().split('T')[0];
             
-            updateChartPeriodDisplay(months);
-            
-            if (months.length === 0) {
-                chartElement.innerHTML = `
-                    <div class="absolute inset-0 flex items-center justify-center text-center text-gray-500">
-                        <div>
-                            <span class="text-4xl mb-2 block">📈</span>
-                            <p>Tidak ada data untuk periode ini</p>
+            const chartContent = Object.keys(dailyData).map(dateStr => {
+                const data = dailyData[dateStr];
+                const dayBalance = data.income - data.expense;
+                runningBalance += dayBalance;
+                
+                const incomeHeight = maxAmount > 0 ? Math.max((data.income / maxAmount) * 180, data.income > 0 ? 4 : 0) : 0;
+                const expenseHeight = maxAmount > 0 ? Math.max((data.expense / maxAmount) * 180, data.expense > 0 ? 4 : 0) : 0;
+                const balanceHeight = maxAmount > 0 ? Math.abs(dayBalance / maxAmount) * 60 : 0;
+                
+                const day = parseInt(dateStr.split('-')[2]);
+                const isToday = dateStr === today;
+                const hasTransactions = data.transactions.length > 0;
+                
+                return `
+                    <div class="flex flex-col items-center space-y-1 min-w-[32px] px-1 group cursor-pointer" 
+                         onclick="showDayDetails('${dateStr}')"
+                         title="Klik untuk detail transaksi ${day}/${month + 1}">
+                        
+                        <!-- Balance indicator (top) -->
+                        <div class="w-full flex justify-center">
+                            <div class="w-2 ${dayBalance > 0 ? 'bg-blue-500' : dayBalance < 0 ? 'bg-orange-500' : 'bg-gray-300'} rounded-full transition-all group-hover:w-3" 
+                                 style="height: ${Math.max(balanceHeight, 2)}px;"
+                                 title="Saldo harian: ${formatCurrency(dayBalance)}"></div>
+                        </div>
+                        
+                        <!-- Income/Expense bars -->
+                        <div class="flex items-end space-x-1 justify-center w-full">
+                            <div class="chart-bar bg-green-500 rounded-t transition-all group-hover:bg-green-600 min-w-[6px] max-w-[12px] flex-1" 
+                                 style="height: ${incomeHeight}px;" 
+                                 title="Pemasukan: ${formatCurrency(data.income)}"></div>
+                            <div class="chart-bar bg-red-500 rounded-t transition-all group-hover:bg-red-600 min-w-[6px] max-w-[12px] flex-1" 
+                                 style="height: ${expenseHeight}px;" 
+                                 title="Pengeluaran: ${formatCurrency(data.expense)}"></div>
+                        </div>
+                        
+                        <!-- Day number -->
+                        <div class="text-center">
+                            <span class="text-xs ${isToday ? 'font-bold text-blue-600 bg-blue-100 px-1 rounded' : hasTransactions ? 'font-medium text-gray-800' : 'text-gray-400'} transition-colors group-hover:text-blue-600">
+                                ${day}
+                            </span>
+                            ${hasTransactions ? `<div class="w-1 h-1 bg-blue-500 rounded-full mx-auto mt-1"></div>` : ''}
                         </div>
                     </div>
                 `;
-                return;
-            }
-
-            const maxAmount = Math.max(...months.map(m => Math.max(monthlyData[m].income, monthlyData[m].expense)));
+            }).join('');
 
             chartElement.innerHTML = `
-                <div class="flex items-end justify-between h-full w-full px-2">
-                    ${months.map(month => {
-                        const data = monthlyData[month];
-                        const incomeHeight = maxAmount > 0 ? (data.income / maxAmount) * 200 : 0;
-                        const expenseHeight = maxAmount > 0 ? (data.expense / maxAmount) * 200 : 0;
-                        const netBalance = data.income - data.expense;
-                        
-                        return `
-                            <div class="flex flex-col items-center space-y-2 flex-1">
-                                <div class="flex items-end space-x-1 justify-center">
-                                    <div class="chart-bar bg-green-500 rounded-t min-w-[16px] max-w-[24px] w-full" 
-                                         style="height: ${Math.max(incomeHeight, 4)}px;" 
-                                         title="Pemasukan: ${formatCurrency(data.income)}"></div>
-                                    <div class="chart-bar bg-red-500 rounded-t min-w-[16px] max-w-[24px] w-full" 
-                                         style="height: ${Math.max(expenseHeight, 4)}px;" 
-                                         title="Pengeluaran: ${formatCurrency(data.expense)}"></div>
-                                </div>
-                                <div class="text-center">
-                                    <span class="text-xs text-gray-600 block">${formatMonth(month)}</span>
-                                    <span class="text-xs font-medium ${netBalance >= 0 ? 'text-green-600' : 'text-red-600'}" 
-                                          title="Saldo Bersih: ${formatCurrency(netBalance)}">
-                                        ${netBalance >= 0 ? '+' : ''}${formatCurrencyShort(netBalance)}
-                                    </span>
-                                </div>
-                            </div>
-                        `;
-                    }).join('')}
-                </div>
-                <div class="absolute bottom-2 right-2 flex space-x-3 text-xs">
-                    <div class="flex items-center space-x-1">
-                        <div class="w-3 h-3 bg-green-500 rounded"></div>
-                        <span>Pemasukan</span>
-                    </div>
-                    <div class="flex items-center space-x-1">
-                        <div class="w-3 h-3 bg-red-500 rounded"></div>
-                        <span>Pengeluaran</span>
+                <div class="flex items-end justify-start bg-gray-50 rounded-lg p-2 relative h-64" style="min-width: ${daysInMonth * 40}px;">
+                    <div class="flex items-end space-x-1 w-full">
+                        ${chartContent}
                     </div>
                 </div>
             `;
         }
 
-        function updateChartPeriodDisplay(months) {
-            const displayElement = document.getElementById('chartPeriodDisplay');
+        function scrollChart(direction) {
+            const chartContainer = document.getElementById('dailyChart');
+            const scrollAmount = 200;
             
-            if (months.length === 0) {
-                displayElement.textContent = 'Tidak ada data';
+            if (direction === 'left') {
+                chartContainer.scrollLeft -= scrollAmount;
+            } else {
+                chartContainer.scrollLeft += scrollAmount;
+            }
+        }
+
+        function scrollToToday() {
+            const today = new Date();
+            const todayDay = today.getDate();
+            
+            // Check if current chart month is the same as today's month
+            if (currentChartMonth.getMonth() === today.getMonth() && 
+                currentChartMonth.getFullYear() === today.getFullYear()) {
+                
+                const chartContainer = document.getElementById('dailyChart');
+                const dayWidth = 40; // Approximate width per day
+                const scrollPosition = (todayDay - 1) * dayWidth - (chartContainer.clientWidth / 2);
+                
+                chartContainer.scrollTo({
+                    left: Math.max(0, scrollPosition),
+                    behavior: 'smooth'
+                });
+            } else {
+                // Switch to current month first
+                currentChartMonth = new Date();
+                updateDailyChart();
+                updateCurrentMonthSummary();
+                
+                // Then scroll to today
+                setTimeout(() => scrollToToday(), 100);
+            }
+        }
+
+        function showDayDetails(dateStr) {
+            const walletFilter = document.getElementById('chartWalletFilter').value;
+            
+            let filteredTransactions = transactions;
+            if (walletFilter !== 'all') {
+                filteredTransactions = filteredTransactions.filter(t => t.wallet === walletFilter);
+            }
+            
+            const dayTransactions = filteredTransactions.filter(t => t.date === dateStr);
+            
+            if (dayTransactions.length === 0) {
+                showNotification(`Tidak ada transaksi pada ${formatDate(dateStr)}`, 'info');
                 return;
             }
             
-            if (chartPeriodOffset === 0) {
-                displayElement.textContent = '6 Bulan Terakhir';
-            } else {
-                const firstMonth = months[0];
-                const lastMonth = months[months.length - 1];
-                const startDate = new Date(firstMonth + '-01');
-                const endDate = new Date(lastMonth + '-01');
-                
-                const startText = startDate.toLocaleDateString('id-ID', { month: 'short', year: 'numeric' });
-                const endText = endDate.toLocaleDateString('id-ID', { month: 'short', year: 'numeric' });
-                
-                displayElement.textContent = `${startText} - ${endText}`;
-            }
+            const dayIncome = dayTransactions
+                .filter(t => t.type === 'income' || t.type === 'debt' || t.type === 'credit-payment')
+                .reduce((sum, t) => sum + t.amount, 0);
+            
+            const dayExpense = dayTransactions
+                .filter(t => t.type === 'expense' || t.type === 'credit' || t.type === 'debt-payment')
+                .reduce((sum, t) => sum + t.amount, 0);
+            
+            const dayBalance = dayIncome - dayExpense;
+            
+            let reportContent = `
+                <div class="space-y-4">
+                    <div class="text-center border-b pb-4">
+                        <h4 class="text-xl font-bold text-gray-800">${formatDate(dateStr)}</h4>
+                        <div class="grid grid-cols-3 gap-4 mt-3">
+                            <div class="bg-green-50 p-3 rounded">
+                                <p class="text-sm text-green-800">Pemasukan</p>
+                                <p class="text-lg font-bold text-green-600">${formatCurrency(dayIncome)}</p>
+                            </div>
+                            <div class="bg-red-50 p-3 rounded">
+                                <p class="text-sm text-red-800">Pengeluaran</p>
+                                <p class="text-lg font-bold text-red-600">${formatCurrency(dayExpense)}</p>
+                            </div>
+                            <div class="bg-blue-50 p-3 rounded">
+                                <p class="text-sm text-blue-800">Saldo Bersih</p>
+                                <p class="text-lg font-bold ${dayBalance >= 0 ? 'text-blue-600' : 'text-red-600'}">${formatCurrency(dayBalance)}</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h5 class="font-semibold text-gray-800 mb-3">Detail Transaksi (${dayTransactions.length})</h5>
+                        <div class="space-y-2 max-h-60 overflow-y-auto">
+                            ${dayTransactions.map(transaction => {
+                                const walletInfo = wallets[transaction.wallet];
+                                const typeInfo = getTransactionTypeInfo(transaction);
+                                
+                                return `
+                                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded">
+                                        <div class="flex items-center space-x-3">
+                                            <div class="w-8 h-8 rounded-full flex items-center justify-center ${typeInfo.bgColor}">
+                                                <span class="text-sm">${typeInfo.icon}</span>
+                                            </div>
+                                            <div>
+                                                <h6 class="font-medium text-gray-800 text-sm">${transaction.description}</h6>
+                                                <p class="text-xs text-gray-600">${walletInfo.icon} ${walletInfo.name} • ${typeInfo.label}</p>
+                                            </div>
+                                        </div>
+                                        <span class="font-semibold text-sm ${typeInfo.textColor}">
+                                            ${typeInfo.sign}${formatCurrency(transaction.amount)}
+                                        </span>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('reportContent').innerHTML = reportContent;
+            document.getElementById('reportModal').classList.remove('hidden');
+            document.getElementById('reportModal').classList.add('flex');
         }
 
         function updateCurrentMonthSummary() {
@@ -923,7 +1261,7 @@
                             <span class="font-semibold text-sm ${typeInfo.textColor}">
                                 ${typeInfo.sign}${formatCurrency(transaction.amount)}
                             </span>
-                            <button onclick="deleteTransaction(${transaction.id})" class="text-red-600 hover:text-red-800 p-1 text-xs">
+                            <button onclick="deleteTransaction('${transaction.firebaseId || transaction.id}')" class="text-red-600 hover:text-red-800 p-1 text-xs">
                                 🗑️
                             </button>
                         </div>
@@ -945,16 +1283,30 @@
             return types[transaction.type] || types['income'];
         }
 
-        function deleteTransaction(id) {
+        async function deleteTransaction(id) {
             if (confirm('Yakin ingin menghapus transaksi ini?')) {
-                transactions = transactions.filter(t => t.id !== id);
-                saveLocalData();
-                updateWalletBalances();
-                displayTransactions();
-                updateDebtSummary();
-                updateChart();
-                updateCurrentMonthSummary();
-                showNotification('Transaksi berhasil dihapus!', 'success');
+                // Find transaction by either firebaseId or local id
+                const transactionIndex = transactions.findIndex(t => t.firebaseId === id || t.id == id);
+                
+                if (transactionIndex !== -1) {
+                    const transaction = transactions[transactionIndex];
+                    
+                    // Remove from local array
+                    transactions.splice(transactionIndex, 1);
+                    
+                    // Delete from Firebase if it has firebaseId
+                    if (transaction.firebaseId) {
+                        await deleteFromFirebase(transaction.firebaseId);
+                    }
+                    
+                    saveLocalData();
+                    updateWalletBalances();
+                    displayTransactions();
+                    updateDebtSummary();
+                    updateDailyChart();
+                    updateCurrentMonthSummary();
+                    showNotification('Transaksi berhasil dihapus!', 'success');
+                }
             }
         }
 
@@ -1043,7 +1395,7 @@
                 updateWalletBalances();
                 displayTransactions();
                 updateDebtSummary();
-                updateChart();
+                updateDailyChart();
                 updateCurrentMonthSummary();
                 showNotification('Semua data berhasil dihapus!', 'success');
             }
@@ -1055,7 +1407,7 @@
             if (type === 'success') bgColor = 'bg-green-500';
             if (type === 'info') bgColor = 'bg-blue-500';
             
-            notification.className = `fixed top-4 right-4 p-4 rounded-lg text-white z-50 ${bgColor} fade-in`;
+            notification.className = `fixed top-4 right-4 p-4 rounded-lg text-white z-40 ${bgColor} fade-in`;
             notification.textContent = message;
             document.body.appendChild(notification);
             
@@ -1069,7 +1421,7 @@
         document.getElementById('filterWallet').addEventListener('change', displayTransactions);
         document.getElementById('filterPeriod').addEventListener('change', displayTransactions);
         document.getElementById('chartWalletFilter').addEventListener('change', function() {
-            updateChart();
+            updateDailyChart();
             updateCurrentMonthSummary();
         });
 
@@ -1137,5 +1489,5 @@
             return names[category] || category;
         }
     </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'97b78955776ff93e',t:'MTc1NzI2MjA1OC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'97b79a2a276944c3',t:'MTc1NzI2Mjc0Ny4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
