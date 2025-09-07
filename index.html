@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tracker Keuangan Usaha</title>
+    <title>Tracker Keuangan Multi-Dompet</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Firebase SDK -->
     <script type="module">
@@ -11,7 +11,7 @@
         import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, updateDoc, query, orderBy } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
         
         // Firebase configuration (demo config - replace with your own)
-       const firebaseConfig = {
+const firebaseConfig = {
     apiKey: "AIzaSyASOFW-kGHoHemOJ80gax4CVKU03wDJyA8",
     authDomain: "flow-duid.firebaseapp.com",
     databaseURL: "https://flow-duid-default-rtdb.asia-southeast1.firebasedatabase.app",
@@ -40,67 +40,81 @@
     </style>
 </head>
 <body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
-    <div class="container mx-auto px-4 py-8 max-w-6xl">
+    <div class="container mx-auto px-4 py-8 max-w-7xl">
         <!-- Header -->
         <div class="text-center mb-8 slide-up">
-            <h1 class="text-4xl font-bold text-gray-800 mb-2">💰 Tracker Keuangan Usaha</h1>
-            <p class="text-gray-600">Kelola alur keuangan usaha Anda dengan mudah</p>
+            <h1 class="text-4xl font-bold text-gray-800 mb-2">💰 Tracker Keuangan Multi-Dompet</h1>
+            <p class="text-gray-600">Kelola keuangan David, Fitri, dan Usaha dengan sistem hutang-piutang</p>
         </div>
 
-        <!-- Summary Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-            <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-green-500 slide-up">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-sm font-medium text-gray-600">Total Pemasukan</p>
-                        <p class="text-2xl font-bold text-green-600" id="totalIncome">Rp 0</p>
+        <!-- Wallet Selection -->
+        <div class="bg-white rounded-xl shadow-lg p-6 mb-8 fade-in">
+            <h2 class="text-xl font-semibold text-gray-800 mb-4 flex items-center">
+                <span class="mr-2">👛</span> Pilih Dompet Aktif
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <button onclick="switchWallet('david')" id="wallet-david" class="wallet-btn p-4 border-2 border-blue-300 rounded-lg hover:bg-blue-50 transition-all">
+                    <div class="text-center">
+                        <div class="text-3xl mb-2">👨‍💼</div>
+                        <h3 class="font-semibold text-gray-800">David</h3>
+                        <p class="text-sm text-gray-600" id="david-balance">Rp 0</p>
                     </div>
-                    <div class="bg-green-100 p-3 rounded-full">
-                        <span class="text-2xl">📈</span>
+                </button>
+                <button onclick="switchWallet('fitri')" id="wallet-fitri" class="wallet-btn p-4 border-2 border-pink-300 rounded-lg hover:bg-pink-50 transition-all">
+                    <div class="text-center">
+                        <div class="text-3xl mb-2">👩‍💼</div>
+                        <h3 class="font-semibold text-gray-800">Fitri</h3>
+                        <p class="text-sm text-gray-600" id="fitri-balance">Rp 0</p>
                     </div>
+                </button>
+                <button onclick="switchWallet('usaha')" id="wallet-usaha" class="wallet-btn p-4 border-2 border-green-300 rounded-lg hover:bg-green-50 transition-all">
+                    <div class="text-center">
+                        <div class="text-3xl mb-2">🏢</div>
+                        <h3 class="font-semibold text-gray-800">Usaha</h3>
+                        <p class="text-sm text-gray-600" id="usaha-balance">Rp 0</p>
+                    </div>
+                </button>
+            </div>
+        </div>
+
+        <!-- Current Wallet Info -->
+        <div class="bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-xl shadow-lg p-6 mb-8 fade-in">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="text-2xl font-bold" id="current-wallet-name">Pilih Dompet</h2>
+                    <p class="text-purple-100">Dompet aktif saat ini</p>
+                </div>
+                <div class="text-right">
+                    <p class="text-sm text-purple-100">Saldo</p>
+                    <p class="text-3xl font-bold" id="current-wallet-balance">Rp 0</p>
                 </div>
             </div>
+        </div>
 
+        <!-- Debt Summary -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-red-500 slide-up">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-sm font-medium text-gray-600">Total Pengeluaran</p>
-                        <p class="text-2xl font-bold text-red-600" id="totalExpense">Rp 0</p>
-                    </div>
-                    <div class="bg-red-100 p-3 rounded-full">
-                        <span class="text-2xl">📉</span>
-                    </div>
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">🔴 Hutang Aktif</h3>
+                <div id="debt-summary" class="space-y-2">
+                    <p class="text-gray-500 text-sm">Tidak ada hutang</p>
                 </div>
             </div>
-
+            <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-green-500 slide-up">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">🟢 Piutang Aktif</h3>
+                <div id="credit-summary" class="space-y-2">
+                    <p class="text-gray-500 text-sm">Tidak ada piutang</p>
+                </div>
+            </div>
             <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-blue-500 slide-up">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-sm font-medium text-gray-600">Saldo Bersih</p>
-                        <p class="text-2xl font-bold text-blue-600" id="netBalance">Rp 0</p>
-                    </div>
-                    <div class="bg-blue-100 p-3 rounded-full">
-                        <span class="text-2xl">💼</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-purple-500 slide-up">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-sm font-medium text-gray-600">Total Transaksi</p>
-                        <p class="text-2xl font-bold text-purple-600" id="totalTransactions">0</p>
-                    </div>
-                    <div class="bg-purple-100 p-3 rounded-full">
-                        <span class="text-2xl">📊</span>
-                    </div>
-                </div>
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">📊 Total Transaksi</h3>
+                <p class="text-3xl font-bold text-blue-600" id="total-transactions">0</p>
             </div>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <!-- Form Input -->
             <div class="lg:col-span-1">
+                <!-- Transaction Form -->
                 <div class="bg-white rounded-xl shadow-lg p-6 mb-6 fade-in">
                     <h2 class="text-xl font-semibold text-gray-800 mb-4 flex items-center">
                         <span class="mr-2">➕</span> Tambah Transaksi
@@ -112,6 +126,19 @@
                             <select id="type" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                                 <option value="income">💰 Pemasukan</option>
                                 <option value="expense">💸 Pengeluaran</option>
+                                <option value="debt">🔴 Hutang (Pinjam dari...)</option>
+                                <option value="credit">🟢 Piutang (Pinjamkan ke...)</option>
+                                <option value="debt-payment">💳 Bayar Hutang</option>
+                                <option value="credit-payment">💰 Terima Pembayaran</option>
+                            </select>
+                        </div>
+
+                        <div id="wallet-selector" class="hidden">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Dari/Ke Dompet</label>
+                            <select id="target-wallet" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                <option value="david">👨‍💼 David</option>
+                                <option value="fitri">👩‍💼 Fitri</option>
+                                <option value="usaha">🏢 Usaha</option>
                             </select>
                         </div>
 
@@ -120,7 +147,7 @@
                             <input type="text" id="amount" placeholder="0" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
                         </div>
 
-                        <div>
+                        <div id="category-section">
                             <label class="block text-sm font-medium text-gray-700 mb-2">Kategori</label>
                             <select id="category" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                                 <option value="penjualan">🛒 Penjualan</option>
@@ -149,14 +176,14 @@
                 <div class="bg-white rounded-xl shadow-lg p-6 fade-in">
                     <h3 class="text-lg font-semibold text-gray-800 mb-4">🚀 Aksi Cepat</h3>
                     <div class="space-y-3">
+                        <button onclick="showDebtReport()" class="w-full bg-orange-600 text-white py-2 px-4 rounded-lg hover:bg-orange-700 transition-colors">
+                            📋 Laporan Hutang-Piutang
+                        </button>
                         <button onclick="exportData()" class="w-full bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-colors">
                             📊 Export Data
                         </button>
                         <button onclick="clearAllData()" class="w-full bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700 transition-colors">
                             🗑️ Hapus Semua Data
-                        </button>
-                        <button onclick="showMonthlyReport()" class="w-full bg-purple-600 text-white py-2 px-4 rounded-lg hover:bg-purple-700 transition-colors">
-                            📈 Laporan Bulanan
                         </button>
                     </div>
                 </div>
@@ -174,12 +201,14 @@
                                 <option value="all">Semua</option>
                                 <option value="income">Pemasukan</option>
                                 <option value="expense">Pengeluaran</option>
+                                <option value="debt">Hutang</option>
+                                <option value="credit">Piutang</option>
                             </select>
-                            <select id="filterPeriod" class="px-3 py-2 border border-gray-300 rounded-lg text-sm">
-                                <option value="all">Semua Periode</option>
-                                <option value="today">Hari Ini</option>
-                                <option value="week">Minggu Ini</option>
-                                <option value="month">Bulan Ini</option>
+                            <select id="filterWallet" class="px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                                <option value="all">Semua Dompet</option>
+                                <option value="david">David</option>
+                                <option value="fitri">Fitri</option>
+                                <option value="usaha">Usaha</option>
                             </select>
                         </div>
                     </div>
@@ -187,20 +216,7 @@
                     <div id="transactionList" class="space-y-3 max-h-96 overflow-y-auto">
                         <div class="text-center text-gray-500 py-8">
                             <span class="text-4xl mb-4 block">📝</span>
-                            <p>Belum ada transaksi. Tambahkan transaksi pertama Anda!</p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Monthly Chart -->
-                <div class="bg-white rounded-xl shadow-lg p-6 mt-6 fade-in">
-                    <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                        <span class="mr-2">📊</span> Grafik Bulanan
-                    </h3>
-                    <div id="monthlyChart" class="h-64 flex items-center justify-center bg-gray-50 rounded-lg">
-                        <div class="text-center text-gray-500">
-                            <span class="text-4xl mb-2 block">📈</span>
-                            <p>Grafik akan muncul setelah ada data transaksi</p>
+                            <p>Pilih dompet dan tambahkan transaksi pertama!</p>
                         </div>
                     </div>
                 </div>
@@ -208,11 +224,11 @@
         </div>
     </div>
 
-    <!-- Modal for Monthly Report -->
+    <!-- Modal for Debt Report -->
     <div id="reportModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
-        <div class="bg-white rounded-xl p-6 m-4 max-w-2xl w-full max-h-96 overflow-y-auto">
+        <div class="bg-white rounded-xl p-6 m-4 max-w-4xl w-full max-h-96 overflow-y-auto">
             <div class="flex justify-between items-center mb-4">
-                <h3 class="text-xl font-semibold">📊 Laporan Bulanan</h3>
+                <h3 class="text-xl font-semibold">📊 Laporan Hutang-Piutang</h3>
                 <button onclick="closeModal()" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
             </div>
             <div id="reportContent"></div>
@@ -221,8 +237,17 @@
 
     <script>
         let transactions = [];
+        let debts = []; // Track active debts
+        let currentWallet = null;
         let editingId = null;
         let isFirebaseReady = false;
+
+        // Wallet data
+        const wallets = {
+            david: { name: 'David', icon: '👨‍💼', color: 'blue' },
+            fitri: { name: 'Fitri', icon: '👩‍💼', color: 'pink' },
+            usaha: { name: 'Usaha', icon: '🏢', color: 'green' }
+        };
 
         // Set today's date as default
         document.getElementById('date').valueAsDate = new Date();
@@ -237,65 +262,38 @@
             e.target.value = value;
         });
 
-        // Sync category options based on transaction type
+        // Transaction type change handler
         document.getElementById('type').addEventListener('change', function() {
-            updateCategoryOptions();
-        });
-
-        // Initialize Firebase connection
-        function initializeFirebase() {
-            if (window.db && window.firestore) {
-                isFirebaseReady = true;
-                loadTransactionsFromFirebase();
-                showNotification('Terhubung ke database realtime!', 'success');
-            } else {
-                // Fallback to localStorage if Firebase fails
-                console.log('Firebase not available, using localStorage');
-                transactions = JSON.parse(localStorage.getItem('transactions')) || [];
-                updateSummary();
-                displayTransactions();
-                updateChart();
-            }
-        }
-
-        // Load transactions from Firebase with real-time updates
-        function loadTransactionsFromFirebase() {
-            if (!isFirebaseReady) return;
+            const type = this.value;
+            const walletSelector = document.getElementById('wallet-selector');
+            const categorySection = document.getElementById('category-section');
+            const targetWallet = document.getElementById('target-wallet');
             
-            try {
-                const q = window.firestore.query(
-                    window.firestore.collection(window.db, 'transactions'),
-                    window.firestore.orderBy('timestamp', 'desc')
-                );
+            // Show/hide wallet selector for debt/credit transactions
+            if (['debt', 'credit', 'debt-payment', 'credit-payment'].includes(type)) {
+                walletSelector.classList.remove('hidden');
+                categorySection.classList.add('hidden');
                 
-                window.firestore.onSnapshot(q, (snapshot) => {
-                    transactions = [];
-                    snapshot.forEach((doc) => {
-                        transactions.push({
-                            id: doc.id,
-                            ...doc.data()
-                        });
-                    });
-                    updateSummary();
-                    displayTransactions();
-                    updateChart();
-                });
-            } catch (error) {
-                console.error('Firebase error:', error);
-                showNotification('Menggunakan penyimpanan lokal', 'info');
-                transactions = JSON.parse(localStorage.getItem('transactions')) || [];
-                updateSummary();
-                displayTransactions();
-                updateChart();
+                // Update target wallet options (exclude current wallet)
+                updateTargetWalletOptions();
+            } else {
+                walletSelector.classList.add('hidden');
+                categorySection.classList.remove('hidden');
+                updateCategoryOptions();
             }
-        }
-
-        // Load data on page load
-        document.addEventListener('DOMContentLoaded', function() {
-            updateCategoryOptions(); // Initialize category options
-            // Wait a bit for Firebase to load
-            setTimeout(initializeFirebase, 1000);
         });
+
+        function updateTargetWalletOptions() {
+            const targetWallet = document.getElementById('target-wallet');
+            targetWallet.innerHTML = '';
+            
+            Object.keys(wallets).forEach(walletId => {
+                if (walletId !== currentWallet) {
+                    const wallet = wallets[walletId];
+                    targetWallet.innerHTML += `<option value="${walletId}">${wallet.icon} ${wallet.name}</option>`;
+                }
+            });
+        }
 
         function updateCategoryOptions() {
             const type = document.getElementById('type').value;
@@ -313,145 +311,234 @@
                     <option value="operasional">⚙️ Operasional</option>
                     <option value="marketing">📢 Marketing</option>
                     <option value="sewa">🏢 Sewa</option>
+                    <option value="tabungan">💰 Tabungan</option>
                     <option value="lainnya-keluar">📋 Lainnya</option>
                 `;
             }
         }
 
+        function switchWallet(walletId) {
+            currentWallet = walletId;
+            
+            // Update active wallet styling
+            document.querySelectorAll('.wallet-btn').forEach(btn => {
+                btn.classList.remove('border-blue-500', 'border-pink-500', 'border-green-500', 'bg-blue-100', 'bg-pink-100', 'bg-green-100');
+                btn.classList.add(`border-${wallets[walletId].color}-300`);
+            });
+            
+            const activeBtn = document.getElementById(`wallet-${walletId}`);
+            activeBtn.classList.remove(`border-${wallets[walletId].color}-300`);
+            activeBtn.classList.add(`border-${wallets[walletId].color}-500`, `bg-${wallets[walletId].color}-100`);
+            
+            // Update current wallet display
+            document.getElementById('current-wallet-name').textContent = `${wallets[walletId].icon} ${wallets[walletId].name}`;
+            
+            updateWalletBalances();
+            displayTransactions();
+            updateTargetWalletOptions();
+        }
+
+        // Load data on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            updateCategoryOptions();
+            loadLocalData();
+            // Default to David's wallet
+            switchWallet('david');
+        });
+
+        function loadLocalData() {
+            transactions = JSON.parse(localStorage.getItem('transactions')) || [];
+            debts = JSON.parse(localStorage.getItem('debts')) || [];
+            updateWalletBalances();
+            updateDebtSummary();
+        }
+
+        function saveLocalData() {
+            localStorage.setItem('transactions', JSON.stringify(transactions));
+            localStorage.setItem('debts', JSON.stringify(debts));
+        }
+
         // Form submission
-        document.getElementById('transactionForm').addEventListener('submit', async function(e) {
+        document.getElementById('transactionForm').addEventListener('submit', function(e) {
             e.preventDefault();
             
+            if (!currentWallet) {
+                showNotification('Pilih dompet terlebih dahulu!', 'error');
+                return;
+            }
+            
             const type = document.getElementById('type').value;
-            const amountStr = document.getElementById('amount').value.replace(/[^\d]/g, ''); // Remove formatting
+            const amountStr = document.getElementById('amount').value.replace(/[^\d]/g, '');
             const amount = parseFloat(amountStr);
-            const category = document.getElementById('category').value;
             const description = document.getElementById('description').value;
             const date = document.getElementById('date').value;
-
-            if (editingId) {
-                // Update existing transaction
-                if (isFirebaseReady) {
-                    try {
-                        await window.firestore.updateDoc(
-                            window.firestore.doc(window.db, 'transactions', editingId),
-                            { type, amount, category, description, date }
-                        );
-                        showNotification('Transaksi berhasil diupdate!', 'success');
-                    } catch (error) {
-                        console.error('Firebase update error:', error);
-                        showNotification('Gagal update ke database', 'error');
-                    }
-                } else {
-                    // Fallback to localStorage
-                    const index = transactions.findIndex(t => t.id === editingId);
-                    transactions[index] = {
-                        ...transactions[index],
-                        type, amount, category, description, date
-                    };
-                    localStorage.setItem('transactions', JSON.stringify(transactions));
-                    updateSummary();
-                    displayTransactions();
-                    updateChart();
-                    showNotification('Transaksi berhasil diupdate!', 'success');
-                }
-                editingId = null;
-                document.querySelector('button[type="submit"]').textContent = '✨ Tambah Transaksi';
+            
+            let category = null;
+            let targetWallet = null;
+            
+            if (['debt', 'credit', 'debt-payment', 'credit-payment'].includes(type)) {
+                targetWallet = document.getElementById('target-wallet').value;
             } else {
-                // Add new transaction
-                const transaction = {
-                    type,
-                    amount,
-                    category,
-                    description,
-                    date,
-                    timestamp: new Date()
-                };
+                category = document.getElementById('category').value;
+            }
 
-                if (isFirebaseReady) {
-                    try {
-                        await window.firestore.addDoc(
-                            window.firestore.collection(window.db, 'transactions'),
-                            transaction
-                        );
-                        showNotification('Transaksi berhasil disimpan!', 'success');
-                    } catch (error) {
-                        console.error('Firebase add error:', error);
-                        showNotification('Gagal simpan ke database', 'error');
+            const transaction = {
+                id: Date.now(),
+                wallet: currentWallet,
+                type,
+                amount,
+                category,
+                targetWallet,
+                description,
+                date,
+                timestamp: new Date().toISOString()
+            };
+
+            // Handle debt/credit logic
+            if (type === 'debt') {
+                // Create debt record
+                const debt = {
+                    id: Date.now(),
+                    from: targetWallet,
+                    to: currentWallet,
+                    amount: amount,
+                    description: description,
+                    date: date,
+                    status: 'active'
+                };
+                debts.push(debt);
+            } else if (type === 'credit') {
+                // Create credit record (reverse debt)
+                const debt = {
+                    id: Date.now(),
+                    from: currentWallet,
+                    to: targetWallet,
+                    amount: amount,
+                    description: description,
+                    date: date,
+                    status: 'active'
+                };
+                debts.push(debt);
+            } else if (type === 'debt-payment') {
+                // Find and reduce/remove debt
+                const debtIndex = debts.findIndex(d => 
+                    d.to === currentWallet && 
+                    d.from === targetWallet && 
+                    d.status === 'active'
+                );
+                if (debtIndex !== -1) {
+                    if (debts[debtIndex].amount <= amount) {
+                        debts[debtIndex].status = 'paid';
+                    } else {
+                        debts[debtIndex].amount -= amount;
                     }
-                } else {
-                    // Fallback to localStorage
-                    transaction.id = Date.now();
-                    transaction.timestamp = new Date().toISOString();
-                    transactions.unshift(transaction);
-                    localStorage.setItem('transactions', JSON.stringify(transactions));
-                    updateSummary();
-                    displayTransactions();
-                    updateChart();
-                    showNotification('Transaksi berhasil disimpan!', 'success');
+                }
+            } else if (type === 'credit-payment') {
+                // Find and reduce/remove credit
+                const debtIndex = debts.findIndex(d => 
+                    d.from === currentWallet && 
+                    d.to === targetWallet && 
+                    d.status === 'active'
+                );
+                if (debtIndex !== -1) {
+                    if (debts[debtIndex].amount <= amount) {
+                        debts[debtIndex].status = 'paid';
+                    } else {
+                        debts[debtIndex].amount -= amount;
+                    }
                 }
             }
+
+            transactions.unshift(transaction);
+            saveLocalData();
             
             // Reset form
             this.reset();
             document.getElementById('date').valueAsDate = new Date();
-            updateCategoryOptions(); // Reset category options
+            updateCategoryOptions();
+            
+            updateWalletBalances();
+            displayTransactions();
+            updateDebtSummary();
+            
+            showNotification('Transaksi berhasil disimpan!', 'success');
         });
 
-        function updateSummary() {
-            const totalIncome = transactions
-                .filter(t => t.type === 'income')
-                .reduce((sum, t) => sum + t.amount, 0);
+        function updateWalletBalances() {
+            Object.keys(wallets).forEach(walletId => {
+                let balance = 0;
+                
+                transactions.forEach(t => {
+                    if (t.wallet === walletId) {
+                        if (t.type === 'income' || t.type === 'debt' || t.type === 'credit-payment') {
+                            balance += t.amount;
+                        } else if (t.type === 'expense' || t.type === 'credit' || t.type === 'debt-payment') {
+                            balance -= t.amount;
+                        }
+                    }
+                });
+                
+                document.getElementById(`${walletId}-balance`).textContent = formatCurrency(balance);
+                
+                if (walletId === currentWallet) {
+                    document.getElementById('current-wallet-balance').textContent = formatCurrency(balance);
+                }
+            });
             
-            const totalExpense = transactions
-                .filter(t => t.type === 'expense')
-                .reduce((sum, t) => sum + t.amount, 0);
+            // Update total transactions
+            document.getElementById('total-transactions').textContent = transactions.length;
+        }
+
+        function updateDebtSummary() {
+            const activeDebts = debts.filter(d => d.status === 'active');
             
-            const netBalance = totalIncome - totalExpense;
-
-            document.getElementById('totalIncome').textContent = formatCurrency(totalIncome);
-            document.getElementById('totalExpense').textContent = formatCurrency(totalExpense);
-            document.getElementById('netBalance').textContent = formatCurrency(netBalance);
-            document.getElementById('totalTransactions').textContent = transactions.length;
-
-            // Update net balance color
-            const netElement = document.getElementById('netBalance');
-            if (netBalance >= 0) {
-                netElement.className = 'text-2xl font-bold text-green-600';
+            // Current wallet's debts (what current wallet owes)
+            const currentWalletDebts = activeDebts.filter(d => d.to === currentWallet);
+            const debtSummary = document.getElementById('debt-summary');
+            
+            if (currentWalletDebts.length === 0) {
+                debtSummary.innerHTML = '<p class="text-gray-500 text-sm">Tidak ada hutang</p>';
             } else {
-                netElement.className = 'text-2xl font-bold text-red-600';
+                debtSummary.innerHTML = currentWalletDebts.map(debt => `
+                    <div class="flex justify-between items-center text-sm">
+                        <span>ke ${wallets[debt.from].icon} ${wallets[debt.from].name}</span>
+                        <span class="font-medium text-red-600">${formatCurrency(debt.amount)}</span>
+                    </div>
+                `).join('');
+            }
+            
+            // Current wallet's credits (what others owe to current wallet)
+            const currentWalletCredits = activeDebts.filter(d => d.from === currentWallet);
+            const creditSummary = document.getElementById('credit-summary');
+            
+            if (currentWalletCredits.length === 0) {
+                creditSummary.innerHTML = '<p class="text-gray-500 text-sm">Tidak ada piutang</p>';
+            } else {
+                creditSummary.innerHTML = currentWalletCredits.map(debt => `
+                    <div class="flex justify-between items-center text-sm">
+                        <span>dari ${wallets[debt.to].icon} ${wallets[debt.to].name}</span>
+                        <span class="font-medium text-green-600">${formatCurrency(debt.amount)}</span>
+                    </div>
+                `).join('');
             }
         }
 
         function displayTransactions() {
+            if (!currentWallet) return;
+            
             const filterType = document.getElementById('filterType').value;
-            const filterPeriod = document.getElementById('filterPeriod').value;
+            const filterWallet = document.getElementById('filterWallet').value;
             
             let filteredTransactions = [...transactions];
+
+            // Filter by wallet
+            if (filterWallet !== 'all') {
+                filteredTransactions = filteredTransactions.filter(t => t.wallet === filterWallet);
+            }
 
             // Filter by type
             if (filterType !== 'all') {
                 filteredTransactions = filteredTransactions.filter(t => t.type === filterType);
-            }
-
-            // Filter by period
-            if (filterPeriod !== 'all') {
-                const now = new Date();
-                filteredTransactions = filteredTransactions.filter(t => {
-                    const transactionDate = new Date(t.date);
-                    switch (filterPeriod) {
-                        case 'today':
-                            return transactionDate.toDateString() === now.toDateString();
-                        case 'week':
-                            const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-                            return transactionDate >= weekAgo;
-                        case 'month':
-                            return transactionDate.getMonth() === now.getMonth() && 
-                                   transactionDate.getFullYear() === now.getFullYear();
-                        default:
-                            return true;
-                    }
-                });
             }
 
             const listElement = document.getElementById('transactionList');
@@ -466,196 +553,110 @@
                 return;
             }
 
-            listElement.innerHTML = filteredTransactions.map(transaction => `
-                <div class="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors fade-in">
-                    <div class="flex items-center space-x-4">
-                        <div class="w-12 h-12 rounded-full flex items-center justify-center ${
-                            transaction.type === 'income' ? 'bg-green-100' : 'bg-red-100'
-                        }">
-                            <span class="text-xl">${getCategoryIcon(transaction.category)}</span>
+            listElement.innerHTML = filteredTransactions.map(transaction => {
+                const walletInfo = wallets[transaction.wallet];
+                const typeInfo = getTransactionTypeInfo(transaction);
+                
+                return `
+                    <div class="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors fade-in">
+                        <div class="flex items-center space-x-4">
+                            <div class="w-12 h-12 rounded-full flex items-center justify-center ${typeInfo.bgColor}">
+                                <span class="text-xl">${typeInfo.icon}</span>
+                            </div>
+                            <div>
+                                <h4 class="font-medium text-gray-800">${transaction.description}</h4>
+                                <p class="text-sm text-gray-600">
+                                    ${walletInfo.icon} ${walletInfo.name} • ${typeInfo.label} • ${formatDate(transaction.date)}
+                                </p>
+                            </div>
                         </div>
-                        <div>
-                            <h4 class="font-medium text-gray-800">${transaction.description}</h4>
-                            <p class="text-sm text-gray-600">${getCategoryName(transaction.category)} • ${formatDate(transaction.date)}</p>
+                        <div class="flex items-center space-x-3">
+                            <span class="font-semibold ${typeInfo.textColor}">
+                                ${typeInfo.sign}${formatCurrency(transaction.amount)}
+                            </span>
+                            <button onclick="deleteTransaction(${transaction.id})" class="text-red-600 hover:text-red-800 p-1">
+                                🗑️
+                            </button>
                         </div>
-                    </div>
-                    <div class="flex items-center space-x-3">
-                        <span class="font-semibold ${
-                            transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
-                        }">
-                            ${transaction.type === 'income' ? '+' : '-'}${formatCurrency(transaction.amount)}
-                        </span>
-                        <button onclick="editTransaction(${transaction.id})" class="text-blue-600 hover:text-blue-800 p-1">
-                            ✏️
-                        </button>
-                        <button onclick="deleteTransaction(${transaction.id})" class="text-red-600 hover:text-red-800 p-1">
-                            🗑️
-                        </button>
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        function editTransaction(id) {
-            const transaction = transactions.find(t => t.id === id);
-            if (!transaction) return;
-
-            document.getElementById('type').value = transaction.type;
-            updateCategoryOptions(); // Update categories first
-            document.getElementById('amount').value = transaction.amount;
-            document.getElementById('category').value = transaction.category;
-            document.getElementById('description').value = transaction.description;
-            document.getElementById('date').value = transaction.date;
-
-            editingId = id;
-            document.querySelector('button[type="submit"]').textContent = '💾 Update Transaksi';
-            
-            // Scroll to form
-            document.querySelector('#transactionForm').scrollIntoView({ behavior: 'smooth' });
-        }
-
-        async function deleteTransaction(id) {
-            if (confirm('Yakin ingin menghapus transaksi ini?')) {
-                if (isFirebaseReady) {
-                    try {
-                        await window.firestore.deleteDoc(
-                            window.firestore.doc(window.db, 'transactions', id)
-                        );
-                        showNotification('Transaksi berhasil dihapus!', 'success');
-                    } catch (error) {
-                        console.error('Firebase delete error:', error);
-                        showNotification('Gagal hapus dari database', 'error');
-                    }
-                } else {
-                    // Fallback to localStorage
-                    transactions = transactions.filter(t => t.id !== id);
-                    localStorage.setItem('transactions', JSON.stringify(transactions));
-                    updateSummary();
-                    displayTransactions();
-                    updateChart();
-                    showNotification('Transaksi berhasil dihapus!', 'success');
-                }
-            }
-        }
-
-        function updateChart() {
-            const chartElement = document.getElementById('monthlyChart');
-            
-            if (transactions.length === 0) {
-                chartElement.innerHTML = `
-                    <div class="text-center text-gray-500">
-                        <span class="text-4xl mb-2 block">📈</span>
-                        <p>Grafik akan muncul setelah ada data transaksi</p>
                     </div>
                 `;
-                return;
-            }
-
-            // Group transactions by month
-            const monthlyData = {};
-            transactions.forEach(t => {
-                const month = t.date.substring(0, 7); // YYYY-MM
-                if (!monthlyData[month]) {
-                    monthlyData[month] = { income: 0, expense: 0 };
-                }
-                monthlyData[month][t.type] += t.amount;
-            });
-
-            const months = Object.keys(monthlyData).sort().slice(-6); // Last 6 months
-            const maxAmount = Math.max(...months.map(m => Math.max(monthlyData[m].income, monthlyData[m].expense)));
-
-            chartElement.innerHTML = `
-                <div class="flex items-end justify-between h-48 px-4">
-                    ${months.map(month => {
-                        const data = monthlyData[month];
-                        const incomeHeight = (data.income / maxAmount) * 180;
-                        const expenseHeight = (data.expense / maxAmount) * 180;
-                        return `
-                            <div class="flex flex-col items-center space-y-2">
-                                <div class="flex items-end space-x-1">
-                                    <div class="bg-green-500 rounded-t" style="width: 20px; height: ${incomeHeight}px;" title="Pemasukan: ${formatCurrency(data.income)}"></div>
-                                    <div class="bg-red-500 rounded-t" style="width: 20px; height: ${expenseHeight}px;" title="Pengeluaran: ${formatCurrency(data.expense)}"></div>
-                                </div>
-                                <span class="text-xs text-gray-600 transform -rotate-45">${formatMonth(month)}</span>
-                            </div>
-                        `;
-                    }).join('')}
-                </div>
-                <div class="flex justify-center space-x-4 mt-4 text-sm">
-                    <div class="flex items-center space-x-2">
-                        <div class="w-4 h-4 bg-green-500 rounded"></div>
-                        <span>Pemasukan</span>
-                    </div>
-                    <div class="flex items-center space-x-2">
-                        <div class="w-4 h-4 bg-red-500 rounded"></div>
-                        <span>Pengeluaran</span>
-                    </div>
-                </div>
-            `;
+            }).join('');
         }
 
-        function showMonthlyReport() {
-            const now = new Date();
-            const currentMonth = now.getMonth();
-            const currentYear = now.getFullYear();
+        function getTransactionTypeInfo(transaction) {
+            const types = {
+                'income': { icon: '💰', label: 'Pemasukan', sign: '+', textColor: 'text-green-600', bgColor: 'bg-green-100' },
+                'expense': { icon: '💸', label: 'Pengeluaran', sign: '-', textColor: 'text-red-600', bgColor: 'bg-red-100' },
+                'debt': { icon: '🔴', label: `Hutang dari ${wallets[transaction.targetWallet]?.name}`, sign: '+', textColor: 'text-blue-600', bgColor: 'bg-blue-100' },
+                'credit': { icon: '🟢', label: `Piutang ke ${wallets[transaction.targetWallet]?.name}`, sign: '-', textColor: 'text-orange-600', bgColor: 'bg-orange-100' },
+                'debt-payment': { icon: '💳', label: `Bayar hutang ke ${wallets[transaction.targetWallet]?.name}`, sign: '-', textColor: 'text-red-600', bgColor: 'bg-red-100' },
+                'credit-payment': { icon: '💰', label: `Terima dari ${wallets[transaction.targetWallet]?.name}`, sign: '+', textColor: 'text-green-600', bgColor: 'bg-green-100' }
+            };
             
-            const monthlyTransactions = transactions.filter(t => {
-                const transactionDate = new Date(t.date);
-                return transactionDate.getMonth() === currentMonth && 
-                       transactionDate.getFullYear() === currentYear;
-            });
+            return types[transaction.type] || types['income'];
+        }
 
-            const monthlyIncome = monthlyTransactions
-                .filter(t => t.type === 'income')
-                .reduce((sum, t) => sum + t.amount, 0);
+        function deleteTransaction(id) {
+            if (confirm('Yakin ingin menghapus transaksi ini?')) {
+                transactions = transactions.filter(t => t.id !== id);
+                saveLocalData();
+                updateWalletBalances();
+                displayTransactions();
+                updateDebtSummary();
+                showNotification('Transaksi berhasil dihapus!', 'success');
+            }
+        }
+
+        function showDebtReport() {
+            const activeDebts = debts.filter(d => d.status === 'active');
             
-            const monthlyExpense = monthlyTransactions
-                .filter(t => t.type === 'expense')
-                .reduce((sum, t) => sum + t.amount, 0);
-
-            // Category breakdown
-            const categoryBreakdown = {};
-            monthlyTransactions.forEach(t => {
-                if (!categoryBreakdown[t.category]) {
-                    categoryBreakdown[t.category] = 0;
-                }
-                categoryBreakdown[t.category] += t.amount;
-            });
-
-            const reportContent = `
-                <div class="space-y-4">
-                    <div class="grid grid-cols-2 gap-4">
-                        <div class="bg-green-50 p-4 rounded-lg">
-                            <h4 class="font-semibold text-green-800">Pemasukan Bulan Ini</h4>
-                            <p class="text-2xl font-bold text-green-600">${formatCurrency(monthlyIncome)}</p>
-                        </div>
-                        <div class="bg-red-50 p-4 rounded-lg">
-                            <h4 class="font-semibold text-red-800">Pengeluaran Bulan Ini</h4>
-                            <p class="text-2xl font-bold text-red-600">${formatCurrency(monthlyExpense)}</p>
+            let reportContent = '<div class="space-y-6">';
+            
+            // Summary by wallet
+            Object.keys(wallets).forEach(walletId => {
+                const wallet = wallets[walletId];
+                const walletDebts = activeDebts.filter(d => d.to === walletId);
+                const walletCredits = activeDebts.filter(d => d.from === walletId);
+                
+                const totalDebt = walletDebts.reduce((sum, d) => sum + d.amount, 0);
+                const totalCredit = walletCredits.reduce((sum, d) => sum + d.amount, 0);
+                
+                reportContent += `
+                    <div class="border rounded-lg p-4">
+                        <h4 class="font-semibold text-lg mb-3">${wallet.icon} ${wallet.name}</h4>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="bg-red-50 p-3 rounded">
+                                <p class="text-sm text-red-800">Total Hutang</p>
+                                <p class="text-xl font-bold text-red-600">${formatCurrency(totalDebt)}</p>
+                            </div>
+                            <div class="bg-green-50 p-3 rounded">
+                                <p class="text-sm text-green-800">Total Piutang</p>
+                                <p class="text-xl font-bold text-green-600">${formatCurrency(totalCredit)}</p>
+                            </div>
                         </div>
                     </div>
-                    
-                    <div class="bg-blue-50 p-4 rounded-lg">
-                        <h4 class="font-semibold text-blue-800">Saldo Bersih Bulan Ini</h4>
-                        <p class="text-2xl font-bold ${monthlyIncome - monthlyExpense >= 0 ? 'text-green-600' : 'text-red-600'}">
-                            ${formatCurrency(monthlyIncome - monthlyExpense)}
-                        </p>
-                    </div>
-
+                `;
+            });
+            
+            // Detailed debt list
+            if (activeDebts.length > 0) {
+                reportContent += `
                     <div>
-                        <h4 class="font-semibold mb-2">Breakdown per Kategori:</h4>
+                        <h4 class="font-semibold text-lg mb-3">Detail Hutang-Piutang Aktif</h4>
                         <div class="space-y-2">
-                            ${Object.entries(categoryBreakdown).map(([category, amount]) => `
-                                <div class="flex justify-between items-center p-2 bg-gray-50 rounded">
-                                    <span>${getCategoryIcon(category)} ${getCategoryName(category)}</span>
-                                    <span class="font-medium">${formatCurrency(amount)}</span>
+                            ${activeDebts.map(debt => `
+                                <div class="flex justify-between items-center p-3 bg-gray-50 rounded">
+                                    <span>${wallets[debt.to].icon} ${wallets[debt.to].name} berhutang ke ${wallets[debt.from].icon} ${wallets[debt.from].name}</span>
+                                    <span class="font-medium">${formatCurrency(debt.amount)}</span>
                                 </div>
                             `).join('')}
                         </div>
                     </div>
-                </div>
-            `;
-
+                `;
+            }
+            
+            reportContent += '</div>';
+            
             document.getElementById('reportContent').innerHTML = reportContent;
             document.getElementById('reportModal').classList.remove('hidden');
             document.getElementById('reportModal').classList.add('flex');
@@ -667,41 +668,31 @@
         }
 
         function exportData() {
-            const dataStr = JSON.stringify(transactions, null, 2);
+            const data = {
+                transactions: transactions,
+                debts: debts,
+                exportDate: new Date().toISOString()
+            };
+            const dataStr = JSON.stringify(data, null, 2);
             const dataBlob = new Blob([dataStr], {type: 'application/json'});
             const url = URL.createObjectURL(dataBlob);
             const link = document.createElement('a');
             link.href = url;
-            link.download = `keuangan-usaha-${new Date().toISOString().split('T')[0]}.json`;
+            link.download = `keuangan-multi-dompet-${new Date().toISOString().split('T')[0]}.json`;
             link.click();
             showNotification('Data berhasil diexport!', 'success');
         }
 
-        async function clearAllData() {
+        function clearAllData() {
             if (confirm('Yakin ingin menghapus SEMUA data? Tindakan ini tidak dapat dibatalkan!')) {
-                if (isFirebaseReady) {
-                    try {
-                        // Delete all transactions from Firebase
-                        const deletePromises = transactions.map(transaction => 
-                            window.firestore.deleteDoc(
-                                window.firestore.doc(window.db, 'transactions', transaction.id)
-                            )
-                        );
-                        await Promise.all(deletePromises);
-                        showNotification('Semua data berhasil dihapus!', 'success');
-                    } catch (error) {
-                        console.error('Firebase clear error:', error);
-                        showNotification('Gagal hapus semua data', 'error');
-                    }
-                } else {
-                    // Fallback to localStorage
-                    transactions = [];
-                    localStorage.removeItem('transactions');
-                    updateSummary();
-                    displayTransactions();
-                    updateChart();
-                    showNotification('Semua data berhasil dihapus!', 'success');
-                }
+                transactions = [];
+                debts = [];
+                localStorage.removeItem('transactions');
+                localStorage.removeItem('debts');
+                updateWalletBalances();
+                displayTransactions();
+                updateDebtSummary();
+                showNotification('Semua data berhasil dihapus!', 'success');
             }
         }
 
@@ -722,7 +713,7 @@
 
         // Filter event listeners
         document.getElementById('filterType').addEventListener('change', displayTransactions);
-        document.getElementById('filterPeriod').addEventListener('change', displayTransactions);
+        document.getElementById('filterWallet').addEventListener('change', displayTransactions);
 
         // Utility functions
         function formatCurrency(amount) {
@@ -740,42 +731,6 @@
                 year: 'numeric'
             });
         }
-
-        function formatMonth(monthString) {
-            const [year, month] = monthString.split('-');
-            return new Date(year, month - 1).toLocaleDateString('id-ID', {
-                month: 'short',
-                year: '2-digit'
-            });
-        }
-
-        function getCategoryIcon(category) {
-            const icons = {
-                'penjualan': '🛒',
-                'investasi': '📈',
-                'lainnya-masuk': '💼',
-                'bahan-baku': '📦',
-                'operasional': '⚙️',
-                'marketing': '📢',
-                'sewa': '🏢',
-                'lainnya-keluar': '📋'
-            };
-            return icons[category] || '💰';
-        }
-
-        function getCategoryName(category) {
-            const names = {
-                'penjualan': 'Penjualan',
-                'investasi': 'Investasi',
-                'lainnya-masuk': 'Lainnya',
-                'bahan-baku': 'Bahan Baku',
-                'operasional': 'Operasional',
-                'marketing': 'Marketing',
-                'sewa': 'Sewa',
-                'lainnya-keluar': 'Lainnya'
-            };
-            return names[category] || category;
-        }
     </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'97b7595256ce4481',t:'MTc1NzI2MDA5MS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'97b773624459fd96',t:'MTc1NzI2MTE1OS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
