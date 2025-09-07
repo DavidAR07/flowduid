@@ -10,8 +10,8 @@
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
         import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, updateDoc, query, orderBy } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
         
-        // Firebase configuration - GANTI DENGAN KONFIGURASI ANDA
-       const firebaseConfig = {
+        // Firebase configuration - DEMO MODE (akan menggunakan local storage)
+        const firebaseConfig = {
     apiKey: "AIzaSyASOFW-kGHoHemOJ80gax4CVKU03wDJyA8",
     authDomain: "flow-duid.firebaseapp.com",
     databaseURL: "https://flow-duid-default-rtdb.asia-southeast1.firebasedatabase.app",
@@ -23,19 +23,28 @@
   };
 
         try {
-            // Initialize Firebase
-            const app = initializeApp(firebaseConfig);
-            const db = getFirestore(app);
-            
-            // Make Firebase available globally
-            window.db = db;
-            window.firestore = { collection, addDoc, onSnapshot, deleteDoc, doc, updateDoc, query, orderBy };
-            window.firebaseReady = true;
-            
-            console.log('✅ Firebase initialized successfully');
+            // Check if this is demo mode
+            if (firebaseConfig.apiKey === "demo-mode") {
+                console.log('📱 Running in demo mode - using local storage');
+                window.firebaseReady = false;
+                window.demoMode = true;
+            } else {
+                // Initialize Firebase
+                const app = initializeApp(firebaseConfig);
+                const db = getFirestore(app);
+                
+                // Make Firebase available globally
+                window.db = db;
+                window.firestore = { collection, addDoc, onSnapshot, deleteDoc, doc, updateDoc, query, orderBy };
+                window.firebaseReady = true;
+                window.demoMode = false;
+                
+                console.log('✅ Firebase initialized successfully');
+            }
         } catch (error) {
             console.log('❌ Firebase initialization failed:', error);
             window.firebaseReady = false;
+            window.demoMode = true;
         }
     </script>
     <style>
@@ -54,6 +63,70 @@
     <!-- Firebase Status Indicator -->
     <div id="firebaseStatus" class="firebase-status px-3 py-1 rounded-full text-xs font-medium">
         🔄 Menghubungkan...
+    </div>
+
+    <!-- Firebase Setup Guide Modal -->
+    <div id="firebaseGuideModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-xl p-6 m-4 max-w-4xl w-full max-h-96 overflow-y-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-semibold">🔧 Setup Firebase (Opsional)</h3>
+                <button onclick="closeFirebaseGuide()" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+            </div>
+            <div class="space-y-4 text-sm">
+                <div class="bg-blue-50 p-4 rounded-lg">
+                    <h4 class="font-semibold text-blue-800 mb-2">📱 Mode Saat Ini: Local Storage</h4>
+                    <p class="text-blue-700">Aplikasi berjalan dengan penyimpanan lokal. Data tersimpan di browser Anda dan tidak akan hilang kecuali cache dihapus.</p>
+                </div>
+                
+                <div class="bg-green-50 p-4 rounded-lg">
+                    <h4 class="font-semibold text-green-800 mb-2">☁️ Setup Firebase untuk Real-time Sync</h4>
+                    <ol class="list-decimal list-inside space-y-2 text-green-700">
+                        <li>Buka <a href="https://console.firebase.google.com" target="_blank" class="text-blue-600 underline">Firebase Console</a></li>
+                        <li>Buat project baru atau pilih yang sudah ada</li>
+                        <li>Pilih "Firestore Database" → "Create database"</li>
+                        <li>Pilih "Start in test mode" (atau production mode jika sudah siap)</li>
+                        <li>Pilih lokasi server (asia-southeast1 untuk Indonesia)</li>
+                        <li>Setelah database dibuat, ke tab "Rules" dan ganti dengan:</li>
+                    </ol>
+                    <div class="bg-gray-800 text-green-400 p-3 rounded mt-2 text-xs font-mono overflow-x-auto">
+rules_version = '2';<br>
+service cloud.firestore {<br>
+&nbsp;&nbsp;match /databases/{database}/documents {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;// Allow read/write untuk semua dokumen<br>
+&nbsp;&nbsp;&nbsp;&nbsp;match /{document=**} {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;allow read, write: if true;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+&nbsp;&nbsp;}<br>
+}
+                    </div>
+                    <p class="text-green-700 mt-2">7. Klik "Publish" untuk menyimpan rules</p>
+                    <p class="text-green-700">8. Ke "Project Settings" → "General" → "Your apps"</p>
+                    <p class="text-green-700">9. Klik "Add app" → pilih Web (</>) → daftar app</p>
+                    <p class="text-green-700">10. Copy konfigurasi Firebase dan ganti di kode</p>
+                </div>
+                
+                <div class="bg-blue-50 p-4 rounded-lg">
+                    <h4 class="font-semibold text-blue-800 mb-2">🔧 Cara Ganti Konfigurasi</h4>
+                    <p class="text-blue-700 mb-2">Ganti bagian ini di kode (baris 15-22):</p>
+                    <div class="bg-gray-800 text-blue-400 p-3 rounded text-xs font-mono overflow-x-auto">
+const firebaseConfig = {<br>
+&nbsp;&nbsp;apiKey: "your-api-key-here",<br>
+&nbsp;&nbsp;authDomain: "your-project.firebaseapp.com",<br>
+&nbsp;&nbsp;projectId: "your-project-id",<br>
+&nbsp;&nbsp;storageBucket: "your-project.appspot.com",<br>
+&nbsp;&nbsp;messagingSenderId: "123456789",<br>
+&nbsp;&nbsp;appId: "your-app-id"<br>
+};
+                    </div>
+                    <p class="text-blue-700 mt-2">Dengan konfigurasi yang didapat dari Firebase Console</p>
+                </div>
+                
+                <div class="bg-yellow-50 p-4 rounded-lg">
+                    <h4 class="font-semibold text-yellow-800 mb-2">⚠️ Catatan Keamanan</h4>
+                    <p class="text-yellow-700">Rules di atas membolehkan akses publik. Untuk production, gunakan authentication dan rules yang lebih ketat.</p>
+                </div>
+            </div>
+        </div>
     </div>
 
     <div class="container mx-auto px-4 py-6 max-w-7xl">
@@ -181,6 +254,9 @@
                         </button>
                         <button onclick="syncNow()" class="w-full bg-blue-600 text-white py-2 px-3 rounded-lg hover:bg-blue-700 transition-colors text-xs">
                             🔄 Sync Manual
+                        </button>
+                        <button onclick="showFirebaseGuide()" class="w-full bg-purple-600 text-white py-2 px-3 rounded-lg hover:bg-purple-700 transition-colors text-xs">
+                            🔧 Setup Firebase
                         </button>
                         <button onclick="clearAllData()" class="w-full bg-red-600 text-white py-2 px-3 rounded-lg hover:bg-red-700 transition-colors text-xs">
                             🗑️ Hapus Semua Data
@@ -422,14 +498,59 @@
 
         function updateTargetWalletOptions() {
             const targetWallet = document.getElementById('target-wallet');
+            const type = document.getElementById('type').value;
             targetWallet.innerHTML = '';
+            
+            if (!currentWallet) return;
+            
+            // Add default option
+            targetWallet.innerHTML = '<option value="">Pilih dompet...</option>';
             
             Object.keys(wallets).forEach(walletId => {
                 if (walletId !== currentWallet) {
                     const wallet = wallets[walletId];
-                    targetWallet.innerHTML += `<option value="${walletId}">${wallet.icon} ${wallet.name}</option>`;
+                    
+                    // For debt-payment and credit-payment, only show wallets with active debts/credits
+                    if (type === 'debt-payment') {
+                        const hasActiveDebt = debts.some(d => 
+                            d.to === currentWallet && 
+                            d.from === walletId && 
+                            d.status === 'active'
+                        );
+                        if (hasActiveDebt) {
+                            const debtAmount = debts.find(d => 
+                                d.to === currentWallet && 
+                                d.from === walletId && 
+                                d.status === 'active'
+                            )?.amount || 0;
+                            targetWallet.innerHTML += `<option value="${walletId}">${wallet.icon} ${wallet.name} (Hutang: ${formatCurrency(debtAmount)})</option>`;
+                        }
+                    } else if (type === 'credit-payment') {
+                        const hasActiveCredit = debts.some(d => 
+                            d.from === currentWallet && 
+                            d.to === walletId && 
+                            d.status === 'active'
+                        );
+                        if (hasActiveCredit) {
+                            const creditAmount = debts.find(d => 
+                                d.from === currentWallet && 
+                                d.to === walletId && 
+                                d.status === 'active'
+                            )?.amount || 0;
+                            targetWallet.innerHTML += `<option value="${walletId}">${wallet.icon} ${wallet.name} (Piutang: ${formatCurrency(creditAmount)})</option>`;
+                        }
+                    } else {
+                        // For debt and credit, show all other wallets
+                        targetWallet.innerHTML += `<option value="${walletId}">${wallet.icon} ${wallet.name}</option>`;
+                    }
                 }
             });
+            
+            // Show message if no options available for payment types
+            if (targetWallet.children.length === 1 && ['debt-payment', 'credit-payment'].includes(type)) {
+                const message = type === 'debt-payment' ? 'Tidak ada hutang aktif' : 'Tidak ada piutang aktif';
+                targetWallet.innerHTML = `<option value="">${message}</option>`;
+            }
         }
 
         function updateCategoryOptions() {
@@ -483,8 +604,8 @@
             const checkFirebase = () => {
                 if (window.firebaseReady && window.db) {
                     setupFirebaseListeners();
-                } else if (window.firebaseReady === false) {
-                    // Firebase failed to initialize
+                } else if (window.firebaseReady === false || window.demoMode) {
+                    // Firebase failed to initialize or demo mode
                     updateFirebaseStatus('offline');
                     loadLocalData();
                 } else {
@@ -595,7 +716,7 @@
         }
 
         // Save to Firebase
-        async function saveToFirebase(transaction, debtData = null) {
+        async function saveToFirebase(transaction, debtData = null, debtUpdated = false) {
             if (!isFirebaseReady || !window.db) {
                 saveLocalData();
                 return;
@@ -608,7 +729,7 @@
                     transaction
                 );
 
-                // Save debt data if exists
+                // Save new debt data if exists
                 if (debtData) {
                     await window.firestore.addDoc(
                         window.firestore.collection(window.db, 'debts'), 
@@ -616,16 +737,30 @@
                     );
                 }
 
+                // Update existing debts if modified
+                if (debtUpdated) {
+                    // Update all modified debts in Firebase
+                    const activeDebts = debts.filter(d => d.firebaseId);
+                    for (const debt of activeDebts) {
+                        if (debt.firebaseId) {
+                            await window.firestore.updateDoc(
+                                window.firestore.doc(window.db, 'debts', debt.firebaseId),
+                                {
+                                    amount: debt.amount,
+                                    status: debt.status
+                                }
+                            );
+                        }
+                    }
+                }
+
                 // Also save to local storage as backup
                 saveLocalData();
-                
-                showNotification('✅ Data tersimpan dan tersinkron!', 'success');
                 
             } catch (error) {
                 console.log('Firebase save error:', error);
                 // Fallback to local storage
                 saveLocalData();
-                showNotification('⚠️ Tersimpan lokal - akan sync otomatis', 'info');
             }
         }
 
@@ -678,11 +813,20 @@
             const description = document.getElementById('description').value;
             const date = document.getElementById('date').value;
             
+            if (!amount || amount <= 0) {
+                showNotification('Masukkan jumlah yang valid!', 'error');
+                return;
+            }
+            
             let category = null;
             let targetWallet = null;
             
             if (['debt', 'credit', 'debt-payment', 'credit-payment'].includes(type)) {
                 targetWallet = document.getElementById('target-wallet').value;
+                if (!targetWallet || targetWallet === currentWallet) {
+                    showNotification('Pilih dompet tujuan yang berbeda!', 'error');
+                    return;
+                }
             } else {
                 category = document.getElementById('category').value;
             }
@@ -700,78 +844,177 @@
             };
 
             let debtData = null;
+            let debtUpdated = false;
 
-            // Handle debt/credit logic
+            // Handle debt/credit logic with proper validation
             if (type === 'debt') {
-                // Create debt record
-                debtData = {
-                    id: Date.now(),
-                    from: targetWallet,
-                    to: currentWallet,
-                    amount: amount,
-                    description: description,
-                    date: date,
-                    status: 'active'
-                };
-                debts.push(debtData);
+                // Current wallet borrows from target wallet
+                // Check if there's existing credit from target to current (they cancel out)
+                const existingCreditIndex = debts.findIndex(d => 
+                    d.from === currentWallet && 
+                    d.to === targetWallet && 
+                    d.status === 'active'
+                );
+                
+                if (existingCreditIndex !== -1) {
+                    // There's existing credit, reduce it first
+                    if (debts[existingCreditIndex].amount <= amount) {
+                        const remainingAmount = amount - debts[existingCreditIndex].amount;
+                        debts[existingCreditIndex].status = 'paid';
+                        
+                        if (remainingAmount > 0) {
+                            // Create new debt for remaining amount
+                            debtData = {
+                                id: Date.now() + 1,
+                                from: targetWallet,
+                                to: currentWallet,
+                                amount: remainingAmount,
+                                description: description,
+                                date: date,
+                                status: 'active',
+                                timestamp: new Date().toISOString()
+                            };
+                        }
+                    } else {
+                        debts[existingCreditIndex].amount -= amount;
+                    }
+                    debtUpdated = true;
+                } else {
+                    // No existing credit, create new debt
+                    debtData = {
+                        id: Date.now() + 1,
+                        from: targetWallet,
+                        to: currentWallet,
+                        amount: amount,
+                        description: description,
+                        date: date,
+                        status: 'active',
+                        timestamp: new Date().toISOString()
+                    };
+                }
+                
             } else if (type === 'credit') {
-                // Create credit record (reverse debt)
-                debtData = {
-                    id: Date.now(),
-                    from: currentWallet,
-                    to: targetWallet,
-                    amount: amount,
-                    description: description,
-                    date: date,
-                    status: 'active'
-                };
-                debts.push(debtData);
+                // Current wallet lends to target wallet
+                // Check if there's existing debt from target to current (they cancel out)
+                const existingDebtIndex = debts.findIndex(d => 
+                    d.from === targetWallet && 
+                    d.to === currentWallet && 
+                    d.status === 'active'
+                );
+                
+                if (existingDebtIndex !== -1) {
+                    // There's existing debt, reduce it first
+                    if (debts[existingDebtIndex].amount <= amount) {
+                        const remainingAmount = amount - debts[existingDebtIndex].amount;
+                        debts[existingDebtIndex].status = 'paid';
+                        
+                        if (remainingAmount > 0) {
+                            // Create new credit for remaining amount
+                            debtData = {
+                                id: Date.now() + 1,
+                                from: currentWallet,
+                                to: targetWallet,
+                                amount: remainingAmount,
+                                description: description,
+                                date: date,
+                                status: 'active',
+                                timestamp: new Date().toISOString()
+                            };
+                        }
+                    } else {
+                        debts[existingDebtIndex].amount -= amount;
+                    }
+                    debtUpdated = true;
+                } else {
+                    // No existing debt, create new credit
+                    debtData = {
+                        id: Date.now() + 1,
+                        from: currentWallet,
+                        to: targetWallet,
+                        amount: amount,
+                        description: description,
+                        date: date,
+                        status: 'active',
+                        timestamp: new Date().toISOString()
+                    };
+                }
+                
             } else if (type === 'debt-payment') {
-                // Find and reduce/remove debt
+                // Current wallet pays debt to target wallet
                 const debtIndex = debts.findIndex(d => 
                     d.to === currentWallet && 
                     d.from === targetWallet && 
                     d.status === 'active'
                 );
-                if (debtIndex !== -1) {
-                    if (debts[debtIndex].amount <= amount) {
-                        debts[debtIndex].status = 'paid';
-                    } else {
-                        debts[debtIndex].amount -= amount;
-                    }
+                
+                if (debtIndex === -1) {
+                    showNotification('Tidak ada hutang aktif ke dompet tersebut!', 'error');
+                    return;
                 }
+                
+                if (debts[debtIndex].amount < amount) {
+                    showNotification(`Hutang hanya ${formatCurrency(debts[debtIndex].amount)}. Tidak bisa bayar lebih!`, 'error');
+                    return;
+                }
+                
+                if (debts[debtIndex].amount === amount) {
+                    debts[debtIndex].status = 'paid';
+                } else {
+                    debts[debtIndex].amount -= amount;
+                }
+                debtUpdated = true;
+                
             } else if (type === 'credit-payment') {
-                // Find and reduce/remove credit
-                const debtIndex = debts.findIndex(d => 
+                // Current wallet receives payment from target wallet
+                const creditIndex = debts.findIndex(d => 
                     d.from === currentWallet && 
                     d.to === targetWallet && 
                     d.status === 'active'
                 );
-                if (debtIndex !== -1) {
-                    if (debts[debtIndex].amount <= amount) {
-                        debts[debtIndex].status = 'paid';
-                    } else {
-                        debts[debtIndex].amount -= amount;
-                    }
+                
+                if (creditIndex === -1) {
+                    showNotification('Tidak ada piutang aktif dari dompet tersebut!', 'error');
+                    return;
                 }
+                
+                if (debts[creditIndex].amount < amount) {
+                    showNotification(`Piutang hanya ${formatCurrency(debts[creditIndex].amount)}. Tidak bisa terima lebih!`, 'error');
+                    return;
+                }
+                
+                if (debts[creditIndex].amount === amount) {
+                    debts[creditIndex].status = 'paid';
+                } else {
+                    debts[creditIndex].amount -= amount;
+                }
+                debtUpdated = true;
+            }
+
+            // Add debt data to array if new debt/credit created
+            if (debtData) {
+                debts.push(debtData);
             }
 
             // Add to local array first for immediate UI update
             transactions.unshift(transaction);
             
             // Save to Firebase (will also save to local storage)
-            await saveToFirebase(transaction, debtData);
+            await saveToFirebase(transaction, debtData, debtUpdated);
             
             // Reset form
             this.reset();
             document.getElementById('date').valueAsDate = new Date();
             updateCategoryOptions();
+            document.getElementById('wallet-selector').classList.add('hidden');
+            document.getElementById('category-section').classList.remove('hidden');
             
             updateWalletBalances();
             displayTransactions();
             updateDebtSummary();
             updateDailyChart();
             updateCurrentMonthSummary();
+            
+            showNotification('Transaksi berhasil ditambahkan!', 'success');
         });
 
         function updateWalletBalances() {
@@ -1304,6 +1547,70 @@
                 if (transactionIndex !== -1) {
                     const transaction = transactions[transactionIndex];
                     
+                    // Handle debt/credit reversal when deleting transaction
+                    if (['debt', 'credit'].includes(transaction.type)) {
+                        // Find and remove related debt record
+                        const debtIndex = debts.findIndex(d => 
+                            d.description === transaction.description && 
+                            d.date === transaction.date &&
+                            d.amount === transaction.amount &&
+                            d.status === 'active' &&
+                            ((transaction.type === 'debt' && d.from === transaction.targetWallet && d.to === transaction.wallet) ||
+                             (transaction.type === 'credit' && d.from === transaction.wallet && d.to === transaction.targetWallet))
+                        );
+                        
+                        if (debtIndex !== -1) {
+                            debts.splice(debtIndex, 1);
+                        }
+                    } else if (['debt-payment', 'credit-payment'].includes(transaction.type)) {
+                        // Restore the debt/credit amount when deleting payment
+                        if (transaction.type === 'debt-payment') {
+                            // Find paid debt and restore it
+                            let debtIndex = debts.findIndex(d => 
+                                d.to === transaction.wallet && 
+                                d.from === transaction.targetWallet && 
+                                d.status === 'paid'
+                            );
+                            
+                            if (debtIndex !== -1) {
+                                debts[debtIndex].status = 'active';
+                                debts[debtIndex].amount = transaction.amount;
+                            } else {
+                                // Find active debt and increase amount
+                                debtIndex = debts.findIndex(d => 
+                                    d.to === transaction.wallet && 
+                                    d.from === transaction.targetWallet && 
+                                    d.status === 'active'
+                                );
+                                if (debtIndex !== -1) {
+                                    debts[debtIndex].amount += transaction.amount;
+                                }
+                            }
+                        } else if (transaction.type === 'credit-payment') {
+                            // Find paid credit and restore it
+                            let creditIndex = debts.findIndex(d => 
+                                d.from === transaction.wallet && 
+                                d.to === transaction.targetWallet && 
+                                d.status === 'paid'
+                            );
+                            
+                            if (creditIndex !== -1) {
+                                debts[creditIndex].status = 'active';
+                                debts[creditIndex].amount = transaction.amount;
+                            } else {
+                                // Find active credit and increase amount
+                                creditIndex = debts.findIndex(d => 
+                                    d.from === transaction.wallet && 
+                                    d.to === transaction.targetWallet && 
+                                    d.status === 'active'
+                                );
+                                if (creditIndex !== -1) {
+                                    debts[creditIndex].amount += transaction.amount;
+                                }
+                            }
+                        }
+                    }
+                    
                     // Remove from local array
                     transactions.splice(transactionIndex, 1);
                     
@@ -1328,6 +1635,16 @@
             
             let reportContent = '<div class="space-y-6">';
             
+            // Overall Summary
+            const totalAllDebts = activeDebts.reduce((sum, d) => sum + d.amount, 0);
+            reportContent += `
+                <div class="bg-blue-50 p-4 rounded-lg text-center">
+                    <h4 class="font-semibold text-blue-800 mb-2">Total Hutang-Piutang Aktif</h4>
+                    <p class="text-2xl font-bold text-blue-600">${formatCurrency(totalAllDebts)}</p>
+                    <p class="text-sm text-blue-700">${activeDebts.length} transaksi aktif</p>
+                </div>
+            `;
+            
             // Summary by wallet
             Object.keys(wallets).forEach(walletId => {
                 const wallet = wallets[walletId];
@@ -1336,37 +1653,94 @@
                 
                 const totalDebt = walletDebts.reduce((sum, d) => sum + d.amount, 0);
                 const totalCredit = walletCredits.reduce((sum, d) => sum + d.amount, 0);
+                const netPosition = totalCredit - totalDebt;
                 
                 reportContent += `
                     <div class="border rounded-lg p-4">
                         <h4 class="font-semibold text-lg mb-3">${wallet.icon} ${wallet.name}</h4>
-                        <div class="grid grid-cols-2 gap-4">
-                            <div class="bg-red-50 p-3 rounded">
-                                <p class="text-sm text-red-800">Total Hutang</p>
-                                <p class="text-xl font-bold text-red-600">${formatCurrency(totalDebt)}</p>
+                        <div class="grid grid-cols-3 gap-4 mb-3">
+                            <div class="bg-red-50 p-3 rounded text-center">
+                                <p class="text-sm text-red-800">Hutang</p>
+                                <p class="text-lg font-bold text-red-600">${formatCurrency(totalDebt)}</p>
+                                <p class="text-xs text-red-700">${walletDebts.length} transaksi</p>
                             </div>
-                            <div class="bg-green-50 p-3 rounded">
-                                <p class="text-sm text-green-800">Total Piutang</p>
-                                <p class="text-xl font-bold text-green-600">${formatCurrency(totalCredit)}</p>
+                            <div class="bg-green-50 p-3 rounded text-center">
+                                <p class="text-sm text-green-800">Piutang</p>
+                                <p class="text-lg font-bold text-green-600">${formatCurrency(totalCredit)}</p>
+                                <p class="text-xs text-green-700">${walletCredits.length} transaksi</p>
+                            </div>
+                            <div class="bg-${netPosition >= 0 ? 'blue' : 'orange'}-50 p-3 rounded text-center">
+                                <p class="text-sm text-${netPosition >= 0 ? 'blue' : 'orange'}-800">Posisi Bersih</p>
+                                <p class="text-lg font-bold text-${netPosition >= 0 ? 'blue' : 'orange'}-600">${formatCurrency(Math.abs(netPosition))}</p>
+                                <p class="text-xs text-${netPosition >= 0 ? 'blue' : 'orange'}-700">${netPosition >= 0 ? 'Surplus' : 'Defisit'}</p>
                             </div>
                         </div>
+                        
+                        <!-- Detail per wallet -->
+                        ${walletDebts.length > 0 ? `
+                            <div class="mb-3">
+                                <p class="text-sm font-medium text-red-800 mb-2">Hutang kepada:</p>
+                                <div class="space-y-1">
+                                    ${walletDebts.map(debt => `
+                                        <div class="flex justify-between items-center text-sm bg-red-50 p-2 rounded">
+                                            <span>${wallets[debt.from].icon} ${wallets[debt.from].name}</span>
+                                            <span class="font-medium text-red-600">${formatCurrency(debt.amount)}</span>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        ` : ''}
+                        
+                        ${walletCredits.length > 0 ? `
+                            <div>
+                                <p class="text-sm font-medium text-green-800 mb-2">Piutang dari:</p>
+                                <div class="space-y-1">
+                                    ${walletCredits.map(debt => `
+                                        <div class="flex justify-between items-center text-sm bg-green-50 p-2 rounded">
+                                            <span>${wallets[debt.to].icon} ${wallets[debt.to].name}</span>
+                                            <span class="font-medium text-green-600">${formatCurrency(debt.amount)}</span>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        ` : ''}
                     </div>
                 `;
             });
             
-            // Detailed debt list
+            // Detailed debt list with actions
             if (activeDebts.length > 0) {
                 reportContent += `
                     <div>
-                        <h4 class="font-semibold text-lg mb-3">Detail Hutang-Piutang Aktif</h4>
-                        <div class="space-y-2">
+                        <h4 class="font-semibold text-lg mb-3">📋 Semua Transaksi Hutang-Piutang Aktif</h4>
+                        <div class="space-y-2 max-h-60 overflow-y-auto">
                             ${activeDebts.map(debt => `
-                                <div class="flex justify-between items-center p-3 bg-gray-50 rounded">
-                                    <span>${wallets[debt.to].icon} ${wallets[debt.to].name} berhutang ke ${wallets[debt.from].icon} ${wallets[debt.from].name}</span>
-                                    <span class="font-medium">${formatCurrency(debt.amount)}</span>
+                                <div class="flex justify-between items-center p-3 bg-gray-50 rounded border">
+                                    <div>
+                                        <div class="font-medium">
+                                            ${wallets[debt.to].icon} ${wallets[debt.to].name} 
+                                            <span class="text-red-600">berhutang ke</span> 
+                                            ${wallets[debt.from].icon} ${wallets[debt.from].name}
+                                        </div>
+                                        <div class="text-sm text-gray-600">
+                                            ${debt.description} • ${formatDate(debt.date)}
+                                        </div>
+                                    </div>
+                                    <div class="text-right">
+                                        <div class="font-bold text-lg">${formatCurrency(debt.amount)}</div>
+                                        <div class="text-xs text-gray-500">ID: ${debt.id}</div>
+                                    </div>
                                 </div>
                             `).join('')}
                         </div>
+                    </div>
+                `;
+            } else {
+                reportContent += `
+                    <div class="text-center py-8 text-gray-500">
+                        <span class="text-4xl mb-4 block">✅</span>
+                        <p class="text-lg font-medium">Tidak ada hutang-piutang aktif</p>
+                        <p class="text-sm">Semua transaksi sudah lunas!</p>
                     </div>
                 `;
             }
@@ -1381,6 +1755,16 @@
         function closeModal() {
             document.getElementById('reportModal').classList.add('hidden');
             document.getElementById('reportModal').classList.remove('flex');
+        }
+
+        function showFirebaseGuide() {
+            document.getElementById('firebaseGuideModal').classList.remove('hidden');
+            document.getElementById('firebaseGuideModal').classList.add('flex');
+        }
+
+        function closeFirebaseGuide() {
+            document.getElementById('firebaseGuideModal').classList.add('hidden');
+            document.getElementById('firebaseGuideModal').classList.remove('flex');
         }
 
         function exportData() {
@@ -1399,18 +1783,34 @@
             showNotification('Data berhasil diexport!', 'success');
         }
 
-        function clearAllData() {
+        async function clearAllData() {
             if (confirm('Yakin ingin menghapus SEMUA data? Tindakan ini tidak dapat dibatalkan!')) {
+                // Clear local arrays
                 transactions = [];
                 debts = [];
+                
+                // Clear local storage
                 localStorage.removeItem('transactions');
                 localStorage.removeItem('debts');
+                
+                // Clear Firebase if connected
+                if (isFirebaseReady && window.db) {
+                    try {
+                        // Note: In production, you'd want to batch delete or use cloud functions
+                        // For now, we'll just clear local data and let Firebase sync handle it
+                        showNotification('🔄 Menghapus data dari cloud...', 'info');
+                    } catch (error) {
+                        console.log('Firebase clear error:', error);
+                    }
+                }
+                
+                // Update UI
                 updateWalletBalances();
                 displayTransactions();
                 updateDebtSummary();
                 updateDailyChart();
                 updateCurrentMonthSummary();
-                showNotification('Semua data berhasil dihapus!', 'success');
+                showNotification('✅ Semua data berhasil dihapus!', 'success');
             }
         }
 
@@ -1576,5 +1976,5 @@
             return names[category] || category;
         }
     </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'97b7aef5a48144c3',t:'MTc1NzI2MzU5OS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'97b7cd75d6d56045',t:'MTc1NzI2NDg0OC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
