@@ -11,7 +11,7 @@
         import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, updateDoc, query, orderBy } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
         
         // Firebase configuration - GANTI DENGAN KONFIGURASI ANDA
-        const firebaseConfig = {
+       const firebaseConfig = {
     apiKey: "AIzaSyASOFW-kGHoHemOJ80gax4CVKU03wDJyA8",
     authDomain: "flow-duid.firebaseapp.com",
     databaseURL: "https://flow-duid-default-rtdb.asia-southeast1.firebasedatabase.app",
@@ -1467,10 +1467,28 @@
                 </div>
             `;
             
-            // Position tooltip
+            // Position tooltip - improved positioning
             const rect = event.target.getBoundingClientRect();
-            tooltip.style.left = (rect.left + window.scrollX - 100) + 'px';
-            tooltip.style.top = (rect.top + window.scrollY - 120) + 'px';
+            const chartContainer = document.getElementById('dailyChart').getBoundingClientRect();
+            
+            // Calculate position relative to chart container
+            let left = rect.left + window.scrollX - 120; // Center tooltip on bar
+            let top = chartContainer.top + window.scrollY - 160; // Position above chart area
+            
+            // Prevent tooltip from going off-screen
+            const tooltipWidth = 240; // Approximate tooltip width
+            if (left < 10) left = 10;
+            if (left + tooltipWidth > window.innerWidth - 10) {
+                left = window.innerWidth - tooltipWidth - 10;
+            }
+            
+            // If tooltip would go above viewport, show it below the chart
+            if (top < 10) {
+                top = chartContainer.bottom + window.scrollY + 10;
+            }
+            
+            tooltip.style.left = left + 'px';
+            tooltip.style.top = top + 'px';
             tooltip.style.display = 'block';
         }
 
@@ -1558,5 +1576,5 @@
             return names[category] || category;
         }
     </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'97b7a6c396e844c3',t:'MTc1NzI2MzI2My4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'97b7aef5a48144c3',t:'MTc1NzI2MzU5OS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
