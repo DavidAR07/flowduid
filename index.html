@@ -5,6 +5,31 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tracker Keuangan Usaha</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, updateDoc, query, orderBy } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+        
+        // Firebase configuration (demo config - replace with your own)
+       const firebaseConfig = {
+    apiKey: "AIzaSyASOFW-kGHoHemOJ80gax4CVKU03wDJyA8",
+    authDomain: "flow-duid.firebaseapp.com",
+    databaseURL: "https://flow-duid-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "flow-duid",
+    storageBucket: "flow-duid.firebasestorage.app",
+    messagingSenderId: "955684305421",
+    appId: "1:955684305421:web:c5a9df43211e097836f344",
+    measurementId: "G-LN1V1G5MLJ"
+  };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        
+        // Make Firebase available globally
+        window.db = db;
+        window.firestore = { collection, addDoc, onSnapshot, deleteDoc, doc, updateDoc, query, orderBy };
+    </script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
         body { font-family: 'Inter', sans-serif; }
@@ -92,7 +117,7 @@
 
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">Jumlah (Rp)</label>
-                            <input type="number" id="amount" placeholder="0" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
+                            <input type="text" id="amount" placeholder="0" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
                         </div>
 
                         <div>
@@ -195,23 +220,81 @@
     </div>
 
     <script>
-        let transactions = JSON.parse(localStorage.getItem('transactions')) || [];
+        let transactions = [];
         let editingId = null;
+        let isFirebaseReady = false;
 
         // Set today's date as default
         document.getElementById('date').valueAsDate = new Date();
+
+        // Format number input with thousand separators
+        document.getElementById('amount').addEventListener('input', function(e) {
+            let value = e.target.value.replace(/[^\d]/g, ''); // Remove non-digits
+            if (value) {
+                // Add thousand separators
+                value = parseInt(value).toLocaleString('id-ID');
+            }
+            e.target.value = value;
+        });
 
         // Sync category options based on transaction type
         document.getElementById('type').addEventListener('change', function() {
             updateCategoryOptions();
         });
 
+        // Initialize Firebase connection
+        function initializeFirebase() {
+            if (window.db && window.firestore) {
+                isFirebaseReady = true;
+                loadTransactionsFromFirebase();
+                showNotification('Terhubung ke database realtime!', 'success');
+            } else {
+                // Fallback to localStorage if Firebase fails
+                console.log('Firebase not available, using localStorage');
+                transactions = JSON.parse(localStorage.getItem('transactions')) || [];
+                updateSummary();
+                displayTransactions();
+                updateChart();
+            }
+        }
+
+        // Load transactions from Firebase with real-time updates
+        function loadTransactionsFromFirebase() {
+            if (!isFirebaseReady) return;
+            
+            try {
+                const q = window.firestore.query(
+                    window.firestore.collection(window.db, 'transactions'),
+                    window.firestore.orderBy('timestamp', 'desc')
+                );
+                
+                window.firestore.onSnapshot(q, (snapshot) => {
+                    transactions = [];
+                    snapshot.forEach((doc) => {
+                        transactions.push({
+                            id: doc.id,
+                            ...doc.data()
+                        });
+                    });
+                    updateSummary();
+                    displayTransactions();
+                    updateChart();
+                });
+            } catch (error) {
+                console.error('Firebase error:', error);
+                showNotification('Menggunakan penyimpanan lokal', 'info');
+                transactions = JSON.parse(localStorage.getItem('transactions')) || [];
+                updateSummary();
+                displayTransactions();
+                updateChart();
+            }
+        }
+
         // Load data on page load
         document.addEventListener('DOMContentLoaded', function() {
-            updateSummary();
-            displayTransactions();
-            updateChart();
             updateCategoryOptions(); // Initialize category options
+            // Wait a bit for Firebase to load
+            setTimeout(initializeFirebase, 1000);
         });
 
         function updateCategoryOptions() {
@@ -236,51 +319,83 @@
         }
 
         // Form submission
-        document.getElementById('transactionForm').addEventListener('submit', function(e) {
+        document.getElementById('transactionForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
             const type = document.getElementById('type').value;
-            const amount = parseFloat(document.getElementById('amount').value);
+            const amountStr = document.getElementById('amount').value.replace(/[^\d]/g, ''); // Remove formatting
+            const amount = parseFloat(amountStr);
             const category = document.getElementById('category').value;
             const description = document.getElementById('description').value;
             const date = document.getElementById('date').value;
 
             if (editingId) {
                 // Update existing transaction
-                const index = transactions.findIndex(t => t.id === editingId);
-                transactions[index] = {
-                    ...transactions[index],
-                    type, amount, category, description, date
-                };
+                if (isFirebaseReady) {
+                    try {
+                        await window.firestore.updateDoc(
+                            window.firestore.doc(window.db, 'transactions', editingId),
+                            { type, amount, category, description, date }
+                        );
+                        showNotification('Transaksi berhasil diupdate!', 'success');
+                    } catch (error) {
+                        console.error('Firebase update error:', error);
+                        showNotification('Gagal update ke database', 'error');
+                    }
+                } else {
+                    // Fallback to localStorage
+                    const index = transactions.findIndex(t => t.id === editingId);
+                    transactions[index] = {
+                        ...transactions[index],
+                        type, amount, category, description, date
+                    };
+                    localStorage.setItem('transactions', JSON.stringify(transactions));
+                    updateSummary();
+                    displayTransactions();
+                    updateChart();
+                    showNotification('Transaksi berhasil diupdate!', 'success');
+                }
                 editingId = null;
                 document.querySelector('button[type="submit"]').textContent = '✨ Tambah Transaksi';
             } else {
                 // Add new transaction
                 const transaction = {
-                    id: Date.now(),
                     type,
                     amount,
                     category,
                     description,
                     date,
-                    timestamp: new Date().toISOString()
+                    timestamp: new Date()
                 };
-                transactions.unshift(transaction);
-            }
 
-            localStorage.setItem('transactions', JSON.stringify(transactions));
+                if (isFirebaseReady) {
+                    try {
+                        await window.firestore.addDoc(
+                            window.firestore.collection(window.db, 'transactions'),
+                            transaction
+                        );
+                        showNotification('Transaksi berhasil disimpan!', 'success');
+                    } catch (error) {
+                        console.error('Firebase add error:', error);
+                        showNotification('Gagal simpan ke database', 'error');
+                    }
+                } else {
+                    // Fallback to localStorage
+                    transaction.id = Date.now();
+                    transaction.timestamp = new Date().toISOString();
+                    transactions.unshift(transaction);
+                    localStorage.setItem('transactions', JSON.stringify(transactions));
+                    updateSummary();
+                    displayTransactions();
+                    updateChart();
+                    showNotification('Transaksi berhasil disimpan!', 'success');
+                }
+            }
             
             // Reset form
             this.reset();
             document.getElementById('date').valueAsDate = new Date();
             updateCategoryOptions(); // Reset category options
-            
-            updateSummary();
-            displayTransactions();
-            updateChart();
-            
-            // Show success animation
-            showNotification('Transaksi berhasil disimpan!', 'success');
         });
 
         function updateSummary() {
@@ -399,14 +514,27 @@
             document.querySelector('#transactionForm').scrollIntoView({ behavior: 'smooth' });
         }
 
-        function deleteTransaction(id) {
+        async function deleteTransaction(id) {
             if (confirm('Yakin ingin menghapus transaksi ini?')) {
-                transactions = transactions.filter(t => t.id !== id);
-                localStorage.setItem('transactions', JSON.stringify(transactions));
-                updateSummary();
-                displayTransactions();
-                updateChart();
-                showNotification('Transaksi berhasil dihapus!', 'success');
+                if (isFirebaseReady) {
+                    try {
+                        await window.firestore.deleteDoc(
+                            window.firestore.doc(window.db, 'transactions', id)
+                        );
+                        showNotification('Transaksi berhasil dihapus!', 'success');
+                    } catch (error) {
+                        console.error('Firebase delete error:', error);
+                        showNotification('Gagal hapus dari database', 'error');
+                    }
+                } else {
+                    // Fallback to localStorage
+                    transactions = transactions.filter(t => t.id !== id);
+                    localStorage.setItem('transactions', JSON.stringify(transactions));
+                    updateSummary();
+                    displayTransactions();
+                    updateChart();
+                    showNotification('Transaksi berhasil dihapus!', 'success');
+                }
             }
         }
 
@@ -549,22 +677,41 @@
             showNotification('Data berhasil diexport!', 'success');
         }
 
-        function clearAllData() {
+        async function clearAllData() {
             if (confirm('Yakin ingin menghapus SEMUA data? Tindakan ini tidak dapat dibatalkan!')) {
-                transactions = [];
-                localStorage.removeItem('transactions');
-                updateSummary();
-                displayTransactions();
-                updateChart();
-                showNotification('Semua data berhasil dihapus!', 'success');
+                if (isFirebaseReady) {
+                    try {
+                        // Delete all transactions from Firebase
+                        const deletePromises = transactions.map(transaction => 
+                            window.firestore.deleteDoc(
+                                window.firestore.doc(window.db, 'transactions', transaction.id)
+                            )
+                        );
+                        await Promise.all(deletePromises);
+                        showNotification('Semua data berhasil dihapus!', 'success');
+                    } catch (error) {
+                        console.error('Firebase clear error:', error);
+                        showNotification('Gagal hapus semua data', 'error');
+                    }
+                } else {
+                    // Fallback to localStorage
+                    transactions = [];
+                    localStorage.removeItem('transactions');
+                    updateSummary();
+                    displayTransactions();
+                    updateChart();
+                    showNotification('Semua data berhasil dihapus!', 'success');
+                }
             }
         }
 
         function showNotification(message, type) {
             const notification = document.createElement('div');
-            notification.className = `fixed top-4 right-4 p-4 rounded-lg text-white z-50 ${
-                type === 'success' ? 'bg-green-500' : 'bg-red-500'
-            } fade-in`;
+            let bgColor = 'bg-red-500';
+            if (type === 'success') bgColor = 'bg-green-500';
+            if (type === 'info') bgColor = 'bg-blue-500';
+            
+            notification.className = `fixed top-4 right-4 p-4 rounded-lg text-white z-50 ${bgColor} fade-in`;
             notification.textContent = message;
             document.body.appendChild(notification);
             
@@ -630,5 +777,5 @@
             return names[category] || category;
         }
     </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'97b74df91018ce19',t:'MTc1NzI1OTYyNi4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'97b7595256ce4481',t:'MTc1NzI2MDA5MS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
