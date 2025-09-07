@@ -279,16 +279,20 @@
                         <div class="flex justify-between items-center mt-4 pt-4 border-t border-gray-200">
                             <div class="flex items-center space-x-4">
                                 <div class="flex items-center space-x-2 text-xs">
-                                    <div class="w-3 h-3 bg-green-500 rounded"></div>
-                                    <span>Pemasukan</span>
+                                    <div class="w-3 h-6 bg-green-500 rounded-t"></div>
+                                    <span>💰 Pemasukan</span>
                                 </div>
                                 <div class="flex items-center space-x-2 text-xs">
-                                    <div class="w-3 h-3 bg-red-500 rounded"></div>
-                                    <span>Pengeluaran</span>
+                                    <div class="w-3 h-6 bg-red-500 rounded-t"></div>
+                                    <span>💸 Pengeluaran</span>
                                 </div>
                                 <div class="flex items-center space-x-2 text-xs">
-                                    <div class="w-3 h-3 bg-blue-500 rounded"></div>
-                                    <span>Saldo Harian</span>
+                                    <div class="w-2 h-3 bg-blue-500 rounded-full"></div>
+                                    <span>📊 Saldo (+)</span>
+                                </div>
+                                <div class="flex items-center space-x-2 text-xs">
+                                    <div class="w-2 h-3 bg-orange-500 rounded-full"></div>
+                                    <span>📉 Saldo (-)</span>
                                 </div>
                             </div>
                             <div class="flex items-center space-x-2">
@@ -900,33 +904,48 @@
             // Calculate max amount for scaling
             const maxAmount = Math.max(...Object.values(dailyData).map(d => Math.max(d.income, d.expense, Math.abs(d.income - d.expense))));
             
-            // Calculate running balance
-            let runningBalance = 0;
+            // Calculate max balance for proper scaling
+            const allBalances = Object.values(dailyData).map(d => Math.abs(d.income - d.expense));
+            const maxBalance = Math.max(...allBalances, 0);
+            
             const today = new Date().toISOString().split('T')[0];
             
             const chartContent = Object.keys(dailyData).map(dateStr => {
                 const data = dailyData[dateStr];
                 const dayBalance = data.income - data.expense;
-                runningBalance += dayBalance;
                 
                 const incomeHeight = maxAmount > 0 ? Math.max((data.income / maxAmount) * 180, data.income > 0 ? 4 : 0) : 0;
                 const expenseHeight = maxAmount > 0 ? Math.max((data.expense / maxAmount) * 180, data.expense > 0 ? 4 : 0) : 0;
-                const balanceHeight = maxAmount > 0 ? Math.abs(dayBalance / maxAmount) * 60 : 0;
+                
+                // Fix balance indicator height calculation
+                let balanceHeight = 0;
+                if (maxBalance > 0 && dayBalance !== 0) {
+                    balanceHeight = Math.max((Math.abs(dayBalance) / maxBalance) * 40, 4);
+                } else if (dayBalance === 0) {
+                    balanceHeight = 2; // Minimal height for zero balance
+                }
                 
                 const day = parseInt(dateStr.split('-')[2]);
                 const isToday = dateStr === today;
                 const hasTransactions = data.transactions.length > 0;
                 
                 return `
-                    <div class="flex flex-col items-center space-y-1 min-w-[32px] px-1 group cursor-pointer" 
+                    <div class="flex flex-col items-center space-y-1 min-w-[32px] px-1 group cursor-pointer relative" 
                          onclick="showDayDetails('${dateStr}')"
-                         title="Klik untuk detail transaksi ${day}/${month + 1}">
+                         onmouseover="showChartTooltip(event, '${dateStr}', ${data.income}, ${data.expense}, ${dayBalance})"
+                         onmouseout="hideChartTooltip()">
                         
                         <!-- Balance indicator (top) -->
-                        <div class="w-full flex justify-center">
-                            <div class="w-2 ${dayBalance > 0 ? 'bg-blue-500' : dayBalance < 0 ? 'bg-orange-500' : 'bg-gray-300'} rounded-full transition-all group-hover:w-3" 
-                                 style="height: ${Math.max(balanceHeight, 2)}px;"
-                                 title="Saldo harian: ${formatCurrency(dayBalance)}"></div>
+                        <div class="w-full flex justify-center mb-1">
+                            ${dayBalance !== 0 ? `
+                                <div class="w-2 ${dayBalance > 0 ? 'bg-blue-500' : 'bg-orange-500'} rounded-full transition-all group-hover:w-3" 
+                                     style="height: ${balanceHeight}px;" 
+                                     title="Saldo: ${formatCurrency(dayBalance)}"></div>
+                            ` : `
+                                <div class="w-2 bg-gray-300 rounded-full transition-all group-hover:w-3" 
+                                     style="height: 2px;" 
+                                     title="Saldo: Rp 0"></div>
+                            `}
                         </div>
                         
                         <!-- Income/Expense bars -->
@@ -950,10 +969,36 @@
                 `;
             }).join('');
 
+            // Create Y-axis labels
+            const yAxisLabels = [];
+            if (maxAmount > 0) {
+                const steps = 4;
+                for (let i = 0; i <= steps; i++) {
+                    const value = (maxAmount / steps) * i;
+                    yAxisLabels.push(value);
+                }
+            }
+
             chartElement.innerHTML = `
-                <div class="flex items-end justify-start bg-gray-50 rounded-lg p-2 relative h-64" style="min-width: ${daysInMonth * 40}px;">
-                    <div class="flex items-end space-x-1 w-full">
-                        ${chartContent}
+                <div class="flex bg-gray-50 rounded-lg p-2 relative h-64" style="min-width: ${daysInMonth * 40 + 60}px;">
+                    <!-- Y-axis labels -->
+                    <div class="flex flex-col justify-between h-full w-12 pr-2 text-xs text-gray-500">
+                        ${yAxisLabels.reverse().map(value => `
+                            <div class="text-right leading-none">${formatCurrencyShort(value)}</div>
+                        `).join('')}
+                    </div>
+                    
+                    <!-- Chart bars -->
+                    <div class="flex items-end space-x-1 flex-1 relative">
+                        <!-- Horizontal grid lines -->
+                        <div class="absolute inset-0 flex flex-col justify-between pointer-events-none">
+                            ${yAxisLabels.map(() => `<div class="border-t border-gray-200 w-full"></div>`).join('')}
+                        </div>
+                        
+                        <!-- Chart content -->
+                        <div class="flex items-end space-x-1 w-full relative z-10">
+                            ${chartContent}
+                        </div>
                     </div>
                 </div>
             `;
@@ -1079,49 +1124,19 @@
         function updateCurrentMonthSummary() {
             const walletFilter = document.getElementById('chartWalletFilter').value;
             
-            // Get the period being displayed in the chart
+            // Get current month string (YYYY-MM) from the chart display
+            const currentMonthStr = `${currentChartMonth.getFullYear()}-${String(currentChartMonth.getMonth() + 1).padStart(2, '0')}`;
+            
+            // Filter transactions by wallet if needed
             let filteredTransactions = transactions;
             if (walletFilter !== 'all') {
                 filteredTransactions = filteredTransactions.filter(t => t.wallet === walletFilter);
             }
             
-            // Group transactions by month
-            const monthlyData = {};
-            filteredTransactions.forEach(t => {
-                const month = t.date.substring(0, 7); // YYYY-MM
-                if (!monthlyData[month]) {
-                    monthlyData[month] = { income: 0, expense: 0, transactions: [] };
-                }
-                if (t.type === 'income' || t.type === 'debt' || t.type === 'credit-payment') {
-                    monthlyData[month].income += t.amount;
-                } else if (t.type === 'expense' || t.type === 'credit' || t.type === 'debt-payment') {
-                    monthlyData[month].expense += t.amount;
-                }
-                monthlyData[month].transactions.push(t);
-            });
-
-            // Get the months being displayed
-            const allMonths = Object.keys(monthlyData).sort();
-            const totalMonths = allMonths.length;
-            const endIndex = totalMonths + (chartPeriodOffset * 6);
-            const startIndex = Math.max(0, endIndex - 6);
-            const displayedMonths = allMonths.slice(startIndex, endIndex);
-            
-            // Use the last month in the displayed period as "current month"
-            let targetMonth;
-            let monthlyTransactions = [];
-            
-            if (displayedMonths.length > 0) {
-                targetMonth = displayedMonths[displayedMonths.length - 1];
-                monthlyTransactions = monthlyData[targetMonth]?.transactions || [];
-            } else {
-                // Fallback to actual current month
-                const now = new Date();
-                targetMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-                monthlyTransactions = filteredTransactions.filter(t => {
-                    return t.date.substring(0, 7) === targetMonth;
-                });
-            }
+            // Filter transactions for current displayed month
+            const monthlyTransactions = filteredTransactions.filter(t => 
+                t.date.substring(0, 7) === currentMonthStr
+            );
 
             const monthlyIncome = monthlyTransactions
                 .filter(t => t.type === 'income' || t.type === 'debt' || t.type === 'credit-payment')
@@ -1134,9 +1149,7 @@
             const netBalance = monthlyIncome - monthlyExpense;
 
             // Update current month display
-            const [year, month] = targetMonth.split('-');
-            const monthDate = new Date(year, month - 1);
-            const monthName = monthDate.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
+            const monthName = currentChartMonth.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
             
             document.getElementById('currentMonthName').textContent = monthName;
             document.getElementById('currentMonthIncome').textContent = formatCurrency(monthlyIncome);
@@ -1425,6 +1438,58 @@
             updateCurrentMonthSummary();
         });
 
+        // Chart tooltip functions
+        function showChartTooltip(event, dateStr, income, expense, balance) {
+            const tooltip = document.getElementById('chartTooltip') || createTooltip();
+            const day = parseInt(dateStr.split('-')[2]);
+            const month = currentChartMonth.getMonth() + 1;
+            
+            tooltip.innerHTML = `
+                <div class="bg-gray-800 text-white p-3 rounded-lg shadow-lg text-sm">
+                    <div class="font-semibold mb-2">${day}/${month}/${currentChartMonth.getFullYear()}</div>
+                    <div class="space-y-1">
+                        <div class="flex justify-between items-center">
+                            <span class="text-green-300">💰 Pemasukan:</span>
+                            <span class="font-medium">${formatCurrency(income)}</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-red-300">💸 Pengeluaran:</span>
+                            <span class="font-medium">${formatCurrency(expense)}</span>
+                        </div>
+                        <div class="border-t border-gray-600 pt-1 mt-2">
+                            <div class="flex justify-between items-center">
+                                <span class="${balance >= 0 ? 'text-blue-300' : 'text-orange-300'}">📊 Saldo Bersih:</span>
+                                <span class="font-bold">${formatCurrency(balance)}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="text-xs text-gray-400 mt-2 text-center">Klik untuk detail lengkap</div>
+                </div>
+            `;
+            
+            // Position tooltip
+            const rect = event.target.getBoundingClientRect();
+            tooltip.style.left = (rect.left + window.scrollX - 100) + 'px';
+            tooltip.style.top = (rect.top + window.scrollY - 120) + 'px';
+            tooltip.style.display = 'block';
+        }
+
+        function hideChartTooltip() {
+            const tooltip = document.getElementById('chartTooltip');
+            if (tooltip) {
+                tooltip.style.display = 'none';
+            }
+        }
+
+        function createTooltip() {
+            const tooltip = document.createElement('div');
+            tooltip.id = 'chartTooltip';
+            tooltip.className = 'fixed z-50 pointer-events-none';
+            tooltip.style.display = 'none';
+            document.body.appendChild(tooltip);
+            return tooltip;
+        }
+
         // Utility functions
         function formatCurrency(amount) {
             return new Intl.NumberFormat('id-ID', {
@@ -1435,12 +1500,16 @@
         }
 
         function formatCurrencyShort(amount) {
-            if (Math.abs(amount) >= 1000000) {
-                return (amount / 1000000).toFixed(1) + 'M';
+            if (Math.abs(amount) >= 1000000000) {
+                return 'Rp ' + (amount / 1000000000).toFixed(1) + 'B';
+            } else if (Math.abs(amount) >= 1000000) {
+                return 'Rp ' + (amount / 1000000).toFixed(1) + 'M';
             } else if (Math.abs(amount) >= 1000) {
-                return (amount / 1000).toFixed(0) + 'K';
+                return 'Rp ' + (amount / 1000).toFixed(0) + 'K';
+            } else if (amount === 0) {
+                return 'Rp 0';
             }
-            return amount.toLocaleString('id-ID');
+            return 'Rp ' + Math.round(amount).toLocaleString('id-ID');
         }
 
         function formatDate(dateString) {
@@ -1489,5 +1558,5 @@
             return names[category] || category;
         }
     </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'97b79a2a276944c3',t:'MTc1NzI2Mjc0Ny4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'97b7a6c396e844c3',t:'MTc1NzI2MzI2My4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
