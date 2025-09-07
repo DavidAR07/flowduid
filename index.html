@@ -11,7 +11,7 @@
         import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, updateDoc, query, orderBy } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
         
         // Firebase configuration (demo config - replace with your own)
-const firebaseConfig = {
+        const firebaseConfig = {
     apiKey: "AIzaSyASOFW-kGHoHemOJ80gax4CVKU03wDJyA8",
     authDomain: "flow-duid.firebaseapp.com",
     databaseURL: "https://flow-duid-default-rtdb.asia-southeast1.firebasedatabase.app",
@@ -37,93 +37,76 @@ const firebaseConfig = {
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         .slide-up { animation: slideUp 0.4s ease-out; }
         @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .chart-bar { transition: all 0.3s ease; cursor: pointer; }
+        .chart-bar:hover { opacity: 0.8; transform: scaleY(1.05); }
     </style>
 </head>
 <body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
-    <div class="container mx-auto px-4 py-8 max-w-7xl">
+    <div class="container mx-auto px-4 py-6 max-w-7xl">
         <!-- Header -->
-        <div class="text-center mb-8 slide-up">
-            <h1 class="text-4xl font-bold text-gray-800 mb-2">💰 Tracker Keuangan Multi-Dompet</h1>
+        <div class="text-center mb-6 slide-up">
+            <h1 class="text-3xl font-bold text-gray-800 mb-2">💰 Tracker Keuangan Multi-Dompet</h1>
             <p class="text-gray-600">Kelola keuangan David, Fitri, dan Usaha dengan sistem hutang-piutang</p>
         </div>
 
         <!-- Wallet Selection -->
-        <div class="bg-white rounded-xl shadow-lg p-6 mb-8 fade-in">
-            <h2 class="text-xl font-semibold text-gray-800 mb-4 flex items-center">
+        <div class="bg-white rounded-xl shadow-lg p-4 mb-6 fade-in">
+            <h2 class="text-lg font-semibold text-gray-800 mb-3 flex items-center">
                 <span class="mr-2">👛</span> Pilih Dompet Aktif
             </h2>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <button onclick="switchWallet('david')" id="wallet-david" class="wallet-btn p-4 border-2 border-blue-300 rounded-lg hover:bg-blue-50 transition-all">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <button onclick="switchWallet('david')" id="wallet-david" class="wallet-btn p-3 border-2 border-blue-300 rounded-lg hover:bg-blue-50 transition-all">
                     <div class="text-center">
-                        <div class="text-3xl mb-2">👨‍💼</div>
-                        <h3 class="font-semibold text-gray-800">David</h3>
-                        <p class="text-sm text-gray-600" id="david-balance">Rp 0</p>
+                        <div class="text-2xl mb-1">👨‍💼</div>
+                        <h3 class="font-semibold text-gray-800 text-sm">David</h3>
+                        <p class="text-xs text-gray-600" id="david-balance">Rp 0</p>
                     </div>
                 </button>
-                <button onclick="switchWallet('fitri')" id="wallet-fitri" class="wallet-btn p-4 border-2 border-pink-300 rounded-lg hover:bg-pink-50 transition-all">
+                <button onclick="switchWallet('fitri')" id="wallet-fitri" class="wallet-btn p-3 border-2 border-pink-300 rounded-lg hover:bg-pink-50 transition-all">
                     <div class="text-center">
-                        <div class="text-3xl mb-2">👩‍💼</div>
-                        <h3 class="font-semibold text-gray-800">Fitri</h3>
-                        <p class="text-sm text-gray-600" id="fitri-balance">Rp 0</p>
+                        <div class="text-2xl mb-1">👩‍💼</div>
+                        <h3 class="font-semibold text-gray-800 text-sm">Fitri</h3>
+                        <p class="text-xs text-gray-600" id="fitri-balance">Rp 0</p>
                     </div>
                 </button>
-                <button onclick="switchWallet('usaha')" id="wallet-usaha" class="wallet-btn p-4 border-2 border-green-300 rounded-lg hover:bg-green-50 transition-all">
+                <button onclick="switchWallet('usaha')" id="wallet-usaha" class="wallet-btn p-3 border-2 border-green-300 rounded-lg hover:bg-green-50 transition-all">
                     <div class="text-center">
-                        <div class="text-3xl mb-2">🏢</div>
-                        <h3 class="font-semibold text-gray-800">Usaha</h3>
-                        <p class="text-sm text-gray-600" id="usaha-balance">Rp 0</p>
+                        <div class="text-2xl mb-1">🏢</div>
+                        <h3 class="font-semibold text-gray-800 text-sm">Usaha</h3>
+                        <p class="text-xs text-gray-600" id="usaha-balance">Rp 0</p>
                     </div>
                 </button>
             </div>
         </div>
 
         <!-- Current Wallet Info -->
-        <div class="bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-xl shadow-lg p-6 mb-8 fade-in">
+        <div class="bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-xl shadow-lg p-4 mb-6 fade-in">
             <div class="flex items-center justify-between">
                 <div>
-                    <h2 class="text-2xl font-bold" id="current-wallet-name">Pilih Dompet</h2>
-                    <p class="text-purple-100">Dompet aktif saat ini</p>
+                    <h2 class="text-xl font-bold" id="current-wallet-name">Pilih Dompet</h2>
+                    <p class="text-purple-100 text-sm">Dompet aktif saat ini</p>
                 </div>
                 <div class="text-right">
-                    <p class="text-sm text-purple-100">Saldo</p>
-                    <p class="text-3xl font-bold" id="current-wallet-balance">Rp 0</p>
+                    <p class="text-xs text-purple-100">Saldo</p>
+                    <p class="text-2xl font-bold" id="current-wallet-balance">Rp 0</p>
                 </div>
             </div>
         </div>
 
-        <!-- Debt Summary -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-red-500 slide-up">
-                <h3 class="text-lg font-semibold text-gray-800 mb-4">🔴 Hutang Aktif</h3>
-                <div id="debt-summary" class="space-y-2">
-                    <p class="text-gray-500 text-sm">Tidak ada hutang</p>
-                </div>
-            </div>
-            <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-green-500 slide-up">
-                <h3 class="text-lg font-semibold text-gray-800 mb-4">🟢 Piutang Aktif</h3>
-                <div id="credit-summary" class="space-y-2">
-                    <p class="text-gray-500 text-sm">Tidak ada piutang</p>
-                </div>
-            </div>
-            <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-blue-500 slide-up">
-                <h3 class="text-lg font-semibold text-gray-800 mb-4">📊 Total Transaksi</h3>
-                <p class="text-3xl font-bold text-blue-600" id="total-transactions">0</p>
-            </div>
-        </div>
-
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <!-- Form Input -->
-            <div class="lg:col-span-1">
+        <!-- Main Layout -->
+        <div class="grid grid-cols-1 xl:grid-cols-4 gap-6">
+            <!-- Sidebar - Form & Quick Actions -->
+            <div class="xl:col-span-1">
                 <!-- Transaction Form -->
-                <div class="bg-white rounded-xl shadow-lg p-6 mb-6 fade-in">
-                    <h2 class="text-xl font-semibold text-gray-800 mb-4 flex items-center">
+                <div class="bg-white rounded-xl shadow-lg p-4 mb-4 fade-in sticky top-4">
+                    <h2 class="text-lg font-semibold text-gray-800 mb-3 flex items-center">
                         <span class="mr-2">➕</span> Tambah Transaksi
                     </h2>
                     
-                    <form id="transactionForm" class="space-y-4">
+                    <form id="transactionForm" class="space-y-3">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Jenis Transaksi</label>
-                            <select id="type" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            <label class="block text-xs font-medium text-gray-700 mb-1">Jenis Transaksi</label>
+                            <select id="type" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                                 <option value="income">💰 Pemasukan</option>
                                 <option value="expense">💸 Pengeluaran</option>
                                 <option value="debt">🔴 Hutang (Pinjam dari...)</option>
@@ -134,8 +117,8 @@ const firebaseConfig = {
                         </div>
 
                         <div id="wallet-selector" class="hidden">
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Dari/Ke Dompet</label>
-                            <select id="target-wallet" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            <label class="block text-xs font-medium text-gray-700 mb-1">Dari/Ke Dompet</label>
+                            <select id="target-wallet" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                                 <option value="david">👨‍💼 David</option>
                                 <option value="fitri">👩‍💼 Fitri</option>
                                 <option value="usaha">🏢 Usaha</option>
@@ -143,13 +126,13 @@ const firebaseConfig = {
                         </div>
 
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Jumlah (Rp)</label>
-                            <input type="text" id="amount" placeholder="0" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
+                            <label class="block text-xs font-medium text-gray-700 mb-1">Jumlah (Rp)</label>
+                            <input type="text" id="amount" placeholder="0" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
                         </div>
 
                         <div id="category-section">
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Kategori</label>
-                            <select id="category" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            <label class="block text-xs font-medium text-gray-700 mb-1">Kategori</label>
+                            <select id="category" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                                 <option value="penjualan">🛒 Penjualan</option>
                                 <option value="investasi">📈 Investasi</option>
                                 <option value="lainnya-masuk">💼 Lainnya</option>
@@ -157,63 +140,157 @@ const firebaseConfig = {
                         </div>
 
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Keterangan</label>
-                            <input type="text" id="description" placeholder="Deskripsi transaksi..." class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
+                            <label class="block text-xs font-medium text-gray-700 mb-1">Keterangan</label>
+                            <input type="text" id="description" placeholder="Deskripsi transaksi..." class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
                         </div>
 
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Tanggal</label>
-                            <input type="date" id="date" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
+                            <label class="block text-xs font-medium text-gray-700 mb-1">Tanggal</label>
+                            <input type="date" id="date" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
                         </div>
 
-                        <button type="submit" class="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 px-6 rounded-lg font-medium hover:from-blue-700 hover:to-purple-700 transform hover:scale-105 transition-all duration-200 shadow-lg">
+                        <button type="submit" class="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-2 px-4 rounded-lg font-medium hover:from-blue-700 hover:to-purple-700 transform hover:scale-105 transition-all duration-200 shadow-lg text-sm">
                             ✨ Tambah Transaksi
                         </button>
                     </form>
                 </div>
 
                 <!-- Quick Actions -->
-                <div class="bg-white rounded-xl shadow-lg p-6 fade-in">
-                    <h3 class="text-lg font-semibold text-gray-800 mb-4">🚀 Aksi Cepat</h3>
-                    <div class="space-y-3">
-                        <button onclick="showDebtReport()" class="w-full bg-orange-600 text-white py-2 px-4 rounded-lg hover:bg-orange-700 transition-colors">
+                <div class="bg-white rounded-xl shadow-lg p-4 fade-in">
+                    <h3 class="text-sm font-semibold text-gray-800 mb-3">🚀 Aksi Cepat</h3>
+                    <div class="space-y-2">
+                        <button onclick="showDebtReport()" class="w-full bg-orange-600 text-white py-2 px-3 rounded-lg hover:bg-orange-700 transition-colors text-xs">
                             📋 Laporan Hutang-Piutang
                         </button>
-                        <button onclick="exportData()" class="w-full bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-colors">
+                        <button onclick="exportData()" class="w-full bg-green-600 text-white py-2 px-3 rounded-lg hover:bg-green-700 transition-colors text-xs">
                             📊 Export Data
                         </button>
-                        <button onclick="clearAllData()" class="w-full bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700 transition-colors">
+                        <button onclick="clearAllData()" class="w-full bg-red-600 text-white py-2 px-3 rounded-lg hover:bg-red-700 transition-colors text-xs">
                             🗑️ Hapus Semua Data
                         </button>
                     </div>
                 </div>
             </div>
 
-            <!-- Transaction List -->
-            <div class="lg:col-span-2">
+            <!-- Main Content Area -->
+            <div class="xl:col-span-3 space-y-6">
+                <!-- Debt Summary Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="bg-white rounded-xl shadow-lg p-4 border-l-4 border-red-500 slide-up">
+                        <h3 class="text-sm font-semibold text-gray-800 mb-2">🔴 Hutang Aktif</h3>
+                        <div id="debt-summary" class="space-y-1">
+                            <p class="text-gray-500 text-xs">Tidak ada hutang</p>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-xl shadow-lg p-4 border-l-4 border-green-500 slide-up">
+                        <h3 class="text-sm font-semibold text-gray-800 mb-2">🟢 Piutang Aktif</h3>
+                        <div id="credit-summary" class="space-y-1">
+                            <p class="text-gray-500 text-xs">Tidak ada piutang</p>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-xl shadow-lg p-4 border-l-4 border-blue-500 slide-up">
+                        <h3 class="text-sm font-semibold text-gray-800 mb-2">📊 Total Transaksi</h3>
+                        <p class="text-2xl font-bold text-blue-600" id="total-transactions">0</p>
+                    </div>
+                </div>
+
+                <!-- Monthly Chart Section -->
                 <div class="bg-white rounded-xl shadow-lg p-6 fade-in">
-                    <div class="flex justify-between items-center mb-6">
-                        <h2 class="text-xl font-semibold text-gray-800 flex items-center">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-lg font-semibold text-gray-800 flex items-center">
+                            <span class="mr-2">📊</span> Grafik Bulanan
+                        </h3>
+                        <div class="flex items-center space-x-3">
+                            <!-- Month Navigation -->
+                            <div class="flex items-center space-x-2 bg-gray-100 rounded-lg p-1">
+                                <button onclick="changeChartPeriod(-1)" class="px-2 py-1 text-sm bg-white rounded hover:bg-gray-50 transition-colors">
+                                    ← Sebelum
+                                </button>
+                                <span id="chartPeriodDisplay" class="px-3 py-1 text-sm font-medium text-gray-700 min-w-[120px] text-center">
+                                    6 Bulan Terakhir
+                                </span>
+                                <button onclick="changeChartPeriod(1)" class="px-2 py-1 text-sm bg-white rounded hover:bg-gray-50 transition-colors">
+                                    Sesudah →
+                                </button>
+                            </div>
+                            <select id="chartWalletFilter" class="px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                                <option value="all">Semua Dompet</option>
+                                <option value="david">👨‍💼 David</option>
+                                <option value="fitri">👩‍💼 Fitri</option>
+                                <option value="usaha">🏢 Usaha</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <!-- Current Month Summary -->
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                        <div class="bg-blue-50 p-4 rounded-lg">
+                            <h4 class="text-sm font-semibold text-blue-800">Bulan Ini</h4>
+                            <p class="text-lg font-bold text-blue-600" id="currentMonthName">-</p>
+                        </div>
+                        <div class="bg-green-50 p-4 rounded-lg">
+                            <h4 class="text-sm font-semibold text-green-800">Pemasukan</h4>
+                            <p class="text-lg font-bold text-green-600" id="currentMonthIncome">Rp 0</p>
+                        </div>
+                        <div class="bg-red-50 p-4 rounded-lg">
+                            <h4 class="text-sm font-semibold text-red-800">Pengeluaran</h4>
+                            <p class="text-lg font-bold text-red-600" id="currentMonthExpense">Rp 0</p>
+                        </div>
+                        <div class="bg-purple-50 p-4 rounded-lg">
+                            <h4 class="text-sm font-semibold text-purple-800">Saldo Bersih</h4>
+                            <p class="text-lg font-bold text-purple-600" id="currentMonthNet">Rp 0</p>
+                        </div>
+                    </div>
+
+                    <!-- Chart -->
+                    <div id="monthlyChart" class="h-64 flex items-end justify-between bg-gray-50 rounded-lg p-4 relative">
+                        <div class="absolute inset-0 flex items-center justify-center text-center text-gray-500">
+                            <div>
+                                <span class="text-4xl mb-2 block">📈</span>
+                                <p>Grafik akan muncul setelah ada data transaksi</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Top Categories -->
+                    <div class="mt-6">
+                        <h4 class="text-sm font-semibold text-gray-800 mb-3">🏆 Top 3 Kategori Pengeluaran Bulan Ini</h4>
+                        <div id="topCategories" class="space-y-2">
+                            <p class="text-gray-500 text-sm">Belum ada data pengeluaran</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Transaction List -->
+                <div class="bg-white rounded-xl shadow-lg p-6 fade-in">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-lg font-semibold text-gray-800 flex items-center">
                             <span class="mr-2">📋</span> Riwayat Transaksi
                         </h2>
                         <div class="flex space-x-2">
-                            <select id="filterType" class="px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                            <select id="filterType" class="px-2 py-1 border border-gray-300 rounded text-xs">
                                 <option value="all">Semua</option>
                                 <option value="income">Pemasukan</option>
                                 <option value="expense">Pengeluaran</option>
                                 <option value="debt">Hutang</option>
                                 <option value="credit">Piutang</option>
                             </select>
-                            <select id="filterWallet" class="px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                            <select id="filterWallet" class="px-2 py-1 border border-gray-300 rounded text-xs">
                                 <option value="all">Semua Dompet</option>
                                 <option value="david">David</option>
                                 <option value="fitri">Fitri</option>
                                 <option value="usaha">Usaha</option>
                             </select>
+                            <select id="filterPeriod" class="px-2 py-1 border border-gray-300 rounded text-xs">
+                                <option value="all">Semua Periode</option>
+                                <option value="today">Hari Ini</option>
+                                <option value="week">Minggu Ini</option>
+                                <option value="month">Bulan Ini</option>
+                            </select>
                         </div>
                     </div>
 
-                    <div id="transactionList" class="space-y-3 max-h-96 overflow-y-auto">
+                    <div id="transactionList" class="space-y-2 max-h-80 overflow-y-auto">
                         <div class="text-center text-gray-500 py-8">
                             <span class="text-4xl mb-4 block">📝</span>
                             <p>Pilih dompet dan tambahkan transaksi pertama!</p>
@@ -241,6 +318,7 @@ const firebaseConfig = {
         let currentWallet = null;
         let editingId = null;
         let isFirebaseReady = false;
+        let chartPeriodOffset = 0; // 0 = current period, -1 = previous 6 months, etc.
 
         // Wallet data
         const wallets = {
@@ -336,6 +414,8 @@ const firebaseConfig = {
             updateWalletBalances();
             displayTransactions();
             updateTargetWalletOptions();
+            updateChart();
+            updateCurrentMonthSummary();
         }
 
         // Load data on page load
@@ -460,6 +540,8 @@ const firebaseConfig = {
             updateWalletBalances();
             displayTransactions();
             updateDebtSummary();
+            updateChart();
+            updateCurrentMonthSummary();
             
             showNotification('Transaksi berhasil disimpan!', 'success');
         });
@@ -497,10 +579,10 @@ const firebaseConfig = {
             const debtSummary = document.getElementById('debt-summary');
             
             if (currentWalletDebts.length === 0) {
-                debtSummary.innerHTML = '<p class="text-gray-500 text-sm">Tidak ada hutang</p>';
+                debtSummary.innerHTML = '<p class="text-gray-500 text-xs">Tidak ada hutang</p>';
             } else {
                 debtSummary.innerHTML = currentWalletDebts.map(debt => `
-                    <div class="flex justify-between items-center text-sm">
+                    <div class="flex justify-between items-center text-xs">
                         <span>ke ${wallets[debt.from].icon} ${wallets[debt.from].name}</span>
                         <span class="font-medium text-red-600">${formatCurrency(debt.amount)}</span>
                     </div>
@@ -512,10 +594,10 @@ const firebaseConfig = {
             const creditSummary = document.getElementById('credit-summary');
             
             if (currentWalletCredits.length === 0) {
-                creditSummary.innerHTML = '<p class="text-gray-500 text-sm">Tidak ada piutang</p>';
+                creditSummary.innerHTML = '<p class="text-gray-500 text-xs">Tidak ada piutang</p>';
             } else {
                 creditSummary.innerHTML = currentWalletCredits.map(debt => `
-                    <div class="flex justify-between items-center text-sm">
+                    <div class="flex justify-between items-center text-xs">
                         <span>dari ${wallets[debt.to].icon} ${wallets[debt.to].name}</span>
                         <span class="font-medium text-green-600">${formatCurrency(debt.amount)}</span>
                     </div>
@@ -523,11 +605,258 @@ const firebaseConfig = {
             }
         }
 
+        function changeChartPeriod(direction) {
+            chartPeriodOffset += direction;
+            updateChart();
+            updateCurrentMonthSummary();
+        }
+
+        function updateChart() {
+            const chartElement = document.getElementById('monthlyChart');
+            const walletFilter = document.getElementById('chartWalletFilter').value;
+            
+            // Filter transactions by wallet if needed
+            let filteredTransactions = transactions;
+            if (walletFilter !== 'all') {
+                filteredTransactions = transactions.filter(t => t.wallet === walletFilter);
+            }
+            
+            if (filteredTransactions.length === 0) {
+                chartElement.innerHTML = `
+                    <div class="absolute inset-0 flex items-center justify-center text-center text-gray-500">
+                        <div>
+                            <span class="text-4xl mb-2 block">📈</span>
+                            <p>Grafik akan muncul setelah ada data transaksi</p>
+                        </div>
+                    </div>
+                `;
+                updateChartPeriodDisplay([]);
+                return;
+            }
+
+            // Group transactions by month
+            const monthlyData = {};
+            filteredTransactions.forEach(t => {
+                const month = t.date.substring(0, 7); // YYYY-MM
+                if (!monthlyData[month]) {
+                    monthlyData[month] = { income: 0, expense: 0 };
+                }
+                if (t.type === 'income' || t.type === 'debt' || t.type === 'credit-payment') {
+                    monthlyData[month].income += t.amount;
+                } else if (t.type === 'expense' || t.type === 'credit' || t.type === 'debt-payment') {
+                    monthlyData[month].expense += t.amount;
+                }
+            });
+
+            // Get all available months and calculate the period to show
+            const allMonths = Object.keys(monthlyData).sort();
+            const totalMonths = allMonths.length;
+            
+            // Calculate start and end indices based on offset
+            const endIndex = totalMonths + (chartPeriodOffset * 6);
+            const startIndex = Math.max(0, endIndex - 6);
+            const months = allMonths.slice(startIndex, endIndex);
+            
+            updateChartPeriodDisplay(months);
+            
+            if (months.length === 0) {
+                chartElement.innerHTML = `
+                    <div class="absolute inset-0 flex items-center justify-center text-center text-gray-500">
+                        <div>
+                            <span class="text-4xl mb-2 block">📈</span>
+                            <p>Tidak ada data untuk periode ini</p>
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+
+            const maxAmount = Math.max(...months.map(m => Math.max(monthlyData[m].income, monthlyData[m].expense)));
+
+            chartElement.innerHTML = `
+                <div class="flex items-end justify-between h-full w-full px-2">
+                    ${months.map(month => {
+                        const data = monthlyData[month];
+                        const incomeHeight = maxAmount > 0 ? (data.income / maxAmount) * 200 : 0;
+                        const expenseHeight = maxAmount > 0 ? (data.expense / maxAmount) * 200 : 0;
+                        const netBalance = data.income - data.expense;
+                        
+                        return `
+                            <div class="flex flex-col items-center space-y-2 flex-1">
+                                <div class="flex items-end space-x-1 justify-center">
+                                    <div class="chart-bar bg-green-500 rounded-t min-w-[16px] max-w-[24px] w-full" 
+                                         style="height: ${Math.max(incomeHeight, 4)}px;" 
+                                         title="Pemasukan: ${formatCurrency(data.income)}"></div>
+                                    <div class="chart-bar bg-red-500 rounded-t min-w-[16px] max-w-[24px] w-full" 
+                                         style="height: ${Math.max(expenseHeight, 4)}px;" 
+                                         title="Pengeluaran: ${formatCurrency(data.expense)}"></div>
+                                </div>
+                                <div class="text-center">
+                                    <span class="text-xs text-gray-600 block">${formatMonth(month)}</span>
+                                    <span class="text-xs font-medium ${netBalance >= 0 ? 'text-green-600' : 'text-red-600'}" 
+                                          title="Saldo Bersih: ${formatCurrency(netBalance)}">
+                                        ${netBalance >= 0 ? '+' : ''}${formatCurrencyShort(netBalance)}
+                                    </span>
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+                <div class="absolute bottom-2 right-2 flex space-x-3 text-xs">
+                    <div class="flex items-center space-x-1">
+                        <div class="w-3 h-3 bg-green-500 rounded"></div>
+                        <span>Pemasukan</span>
+                    </div>
+                    <div class="flex items-center space-x-1">
+                        <div class="w-3 h-3 bg-red-500 rounded"></div>
+                        <span>Pengeluaran</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        function updateChartPeriodDisplay(months) {
+            const displayElement = document.getElementById('chartPeriodDisplay');
+            
+            if (months.length === 0) {
+                displayElement.textContent = 'Tidak ada data';
+                return;
+            }
+            
+            if (chartPeriodOffset === 0) {
+                displayElement.textContent = '6 Bulan Terakhir';
+            } else {
+                const firstMonth = months[0];
+                const lastMonth = months[months.length - 1];
+                const startDate = new Date(firstMonth + '-01');
+                const endDate = new Date(lastMonth + '-01');
+                
+                const startText = startDate.toLocaleDateString('id-ID', { month: 'short', year: 'numeric' });
+                const endText = endDate.toLocaleDateString('id-ID', { month: 'short', year: 'numeric' });
+                
+                displayElement.textContent = `${startText} - ${endText}`;
+            }
+        }
+
+        function updateCurrentMonthSummary() {
+            const walletFilter = document.getElementById('chartWalletFilter').value;
+            
+            // Get the period being displayed in the chart
+            let filteredTransactions = transactions;
+            if (walletFilter !== 'all') {
+                filteredTransactions = filteredTransactions.filter(t => t.wallet === walletFilter);
+            }
+            
+            // Group transactions by month
+            const monthlyData = {};
+            filteredTransactions.forEach(t => {
+                const month = t.date.substring(0, 7); // YYYY-MM
+                if (!monthlyData[month]) {
+                    monthlyData[month] = { income: 0, expense: 0, transactions: [] };
+                }
+                if (t.type === 'income' || t.type === 'debt' || t.type === 'credit-payment') {
+                    monthlyData[month].income += t.amount;
+                } else if (t.type === 'expense' || t.type === 'credit' || t.type === 'debt-payment') {
+                    monthlyData[month].expense += t.amount;
+                }
+                monthlyData[month].transactions.push(t);
+            });
+
+            // Get the months being displayed
+            const allMonths = Object.keys(monthlyData).sort();
+            const totalMonths = allMonths.length;
+            const endIndex = totalMonths + (chartPeriodOffset * 6);
+            const startIndex = Math.max(0, endIndex - 6);
+            const displayedMonths = allMonths.slice(startIndex, endIndex);
+            
+            // Use the last month in the displayed period as "current month"
+            let targetMonth;
+            let monthlyTransactions = [];
+            
+            if (displayedMonths.length > 0) {
+                targetMonth = displayedMonths[displayedMonths.length - 1];
+                monthlyTransactions = monthlyData[targetMonth]?.transactions || [];
+            } else {
+                // Fallback to actual current month
+                const now = new Date();
+                targetMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+                monthlyTransactions = filteredTransactions.filter(t => {
+                    return t.date.substring(0, 7) === targetMonth;
+                });
+            }
+
+            const monthlyIncome = monthlyTransactions
+                .filter(t => t.type === 'income' || t.type === 'debt' || t.type === 'credit-payment')
+                .reduce((sum, t) => sum + t.amount, 0);
+            
+            const monthlyExpense = monthlyTransactions
+                .filter(t => t.type === 'expense' || t.type === 'credit' || t.type === 'debt-payment')
+                .reduce((sum, t) => sum + t.amount, 0);
+
+            const netBalance = monthlyIncome - monthlyExpense;
+
+            // Update current month display
+            const [year, month] = targetMonth.split('-');
+            const monthDate = new Date(year, month - 1);
+            const monthName = monthDate.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
+            
+            document.getElementById('currentMonthName').textContent = monthName;
+            document.getElementById('currentMonthIncome').textContent = formatCurrency(monthlyIncome);
+            document.getElementById('currentMonthExpense').textContent = formatCurrency(monthlyExpense);
+            document.getElementById('currentMonthNet').textContent = formatCurrency(netBalance);
+            
+            // Update net balance color
+            const netElement = document.getElementById('currentMonthNet');
+            if (netBalance >= 0) {
+                netElement.className = 'text-lg font-bold text-green-600';
+            } else {
+                netElement.className = 'text-lg font-bold text-red-600';
+            }
+
+            // Update top categories
+            updateTopCategories(monthlyTransactions);
+        }
+
+        function updateTopCategories(monthlyTransactions) {
+            const categoryTotals = {};
+            
+            monthlyTransactions
+                .filter(t => t.type === 'expense' && t.category)
+                .forEach(t => {
+                    if (!categoryTotals[t.category]) {
+                        categoryTotals[t.category] = 0;
+                    }
+                    categoryTotals[t.category] += t.amount;
+                });
+
+            const sortedCategories = Object.entries(categoryTotals)
+                .sort(([,a], [,b]) => b - a)
+                .slice(0, 3);
+
+            const topCategoriesElement = document.getElementById('topCategories');
+            
+            if (sortedCategories.length === 0) {
+                topCategoriesElement.innerHTML = '<p class="text-gray-500 text-sm">Belum ada data pengeluaran</p>';
+                return;
+            }
+
+            topCategoriesElement.innerHTML = sortedCategories.map(([category, amount], index) => `
+                <div class="flex justify-between items-center p-2 bg-gray-50 rounded">
+                    <span class="text-sm">
+                        ${index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉'} 
+                        ${getCategoryIcon(category)} ${getCategoryName(category)}
+                    </span>
+                    <span class="font-medium text-sm">${formatCurrency(amount)}</span>
+                </div>
+            `).join('');
+        }
+
         function displayTransactions() {
             if (!currentWallet) return;
             
             const filterType = document.getElementById('filterType').value;
             const filterWallet = document.getElementById('filterWallet').value;
+            const filterPeriod = document.getElementById('filterPeriod').value;
             
             let filteredTransactions = [...transactions];
 
@@ -539,6 +868,26 @@ const firebaseConfig = {
             // Filter by type
             if (filterType !== 'all') {
                 filteredTransactions = filteredTransactions.filter(t => t.type === filterType);
+            }
+
+            // Filter by period
+            if (filterPeriod !== 'all') {
+                const now = new Date();
+                filteredTransactions = filteredTransactions.filter(t => {
+                    const transactionDate = new Date(t.date);
+                    switch (filterPeriod) {
+                        case 'today':
+                            return transactionDate.toDateString() === now.toDateString();
+                        case 'week':
+                            const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+                            return transactionDate >= weekAgo;
+                        case 'month':
+                            return transactionDate.getMonth() === now.getMonth() && 
+                                   transactionDate.getFullYear() === now.getFullYear();
+                        default:
+                            return true;
+                    }
+                });
             }
 
             const listElement = document.getElementById('transactionList');
@@ -558,23 +907,23 @@ const firebaseConfig = {
                 const typeInfo = getTransactionTypeInfo(transaction);
                 
                 return `
-                    <div class="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors fade-in">
-                        <div class="flex items-center space-x-4">
-                            <div class="w-12 h-12 rounded-full flex items-center justify-center ${typeInfo.bgColor}">
-                                <span class="text-xl">${typeInfo.icon}</span>
+                    <div class="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors fade-in">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 rounded-full flex items-center justify-center ${typeInfo.bgColor}">
+                                <span class="text-lg">${typeInfo.icon}</span>
                             </div>
                             <div>
-                                <h4 class="font-medium text-gray-800">${transaction.description}</h4>
-                                <p class="text-sm text-gray-600">
+                                <h4 class="font-medium text-gray-800 text-sm">${transaction.description}</h4>
+                                <p class="text-xs text-gray-600">
                                     ${walletInfo.icon} ${walletInfo.name} • ${typeInfo.label} • ${formatDate(transaction.date)}
                                 </p>
                             </div>
                         </div>
-                        <div class="flex items-center space-x-3">
-                            <span class="font-semibold ${typeInfo.textColor}">
+                        <div class="flex items-center space-x-2">
+                            <span class="font-semibold text-sm ${typeInfo.textColor}">
                                 ${typeInfo.sign}${formatCurrency(transaction.amount)}
                             </span>
-                            <button onclick="deleteTransaction(${transaction.id})" class="text-red-600 hover:text-red-800 p-1">
+                            <button onclick="deleteTransaction(${transaction.id})" class="text-red-600 hover:text-red-800 p-1 text-xs">
                                 🗑️
                             </button>
                         </div>
@@ -603,6 +952,8 @@ const firebaseConfig = {
                 updateWalletBalances();
                 displayTransactions();
                 updateDebtSummary();
+                updateChart();
+                updateCurrentMonthSummary();
                 showNotification('Transaksi berhasil dihapus!', 'success');
             }
         }
@@ -692,6 +1043,8 @@ const firebaseConfig = {
                 updateWalletBalances();
                 displayTransactions();
                 updateDebtSummary();
+                updateChart();
+                updateCurrentMonthSummary();
                 showNotification('Semua data berhasil dihapus!', 'success');
             }
         }
@@ -714,6 +1067,11 @@ const firebaseConfig = {
         // Filter event listeners
         document.getElementById('filterType').addEventListener('change', displayTransactions);
         document.getElementById('filterWallet').addEventListener('change', displayTransactions);
+        document.getElementById('filterPeriod').addEventListener('change', displayTransactions);
+        document.getElementById('chartWalletFilter').addEventListener('change', function() {
+            updateChart();
+            updateCurrentMonthSummary();
+        });
 
         // Utility functions
         function formatCurrency(amount) {
@@ -724,6 +1082,15 @@ const firebaseConfig = {
             }).format(amount);
         }
 
+        function formatCurrencyShort(amount) {
+            if (Math.abs(amount) >= 1000000) {
+                return (amount / 1000000).toFixed(1) + 'M';
+            } else if (Math.abs(amount) >= 1000) {
+                return (amount / 1000).toFixed(0) + 'K';
+            }
+            return amount.toLocaleString('id-ID');
+        }
+
         function formatDate(dateString) {
             return new Date(dateString).toLocaleDateString('id-ID', {
                 day: 'numeric',
@@ -731,6 +1098,44 @@ const firebaseConfig = {
                 year: 'numeric'
             });
         }
+
+        function formatMonth(monthString) {
+            const [year, month] = monthString.split('-');
+            return new Date(year, month - 1).toLocaleDateString('id-ID', {
+                month: 'short',
+                year: '2-digit'
+            });
+        }
+
+        function getCategoryIcon(category) {
+            const icons = {
+                'penjualan': '🛒',
+                'investasi': '📈',
+                'lainnya-masuk': '💼',
+                'bahan-baku': '📦',
+                'operasional': '⚙️',
+                'marketing': '📢',
+                'sewa': '🏢',
+                'tabungan': '💰',
+                'lainnya-keluar': '📋'
+            };
+            return icons[category] || '💰';
+        }
+
+        function getCategoryName(category) {
+            const names = {
+                'penjualan': 'Penjualan',
+                'investasi': 'Investasi',
+                'lainnya-masuk': 'Lainnya',
+                'bahan-baku': 'Bahan Baku',
+                'operasional': 'Operasional',
+                'marketing': 'Marketing',
+                'sewa': 'Sewa',
+                'tabungan': 'Tabungan',
+                'lainnya-keluar': 'Lainnya'
+            };
+            return names[category] || category;
+        }
     </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'97b773624459fd96',t:'MTc1NzI2MTE1OS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'97b78955776ff93e',t:'MTc1NzI2MjA1OC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
